@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -28,12 +29,53 @@ export class MedicalRecordsService {
   };
 
   async getForUser(userId: string) {
-    return this.prisma.medicalRecord.upsert({
+    const record = await this.prisma.medicalRecord.upsert({
       where: { userId },
       create: { userId },
       update: {},
       include: this.include,
     });
+    return this.dedupeRecord(record);
+  }
+
+  private normalize(s: string | null | undefined): string {
+    return (s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  // Hide legacy duplicates at the API boundary — keeps newest of each name.
+  // Conditions/medications/allergies dedupe by name/substance; contacts by phone.
+  private dedupeRecord<
+    T extends {
+      conditions: { name: string }[];
+      medications: { name: string }[];
+      allergies: { substance: string }[];
+      emergencyContacts: { phoneNumber: string }[];
+    },
+  >(record: T): T {
+    const keepFirstBy = <R>(arr: R[], keyOf: (r: R) => string): R[] => {
+      const seen = new Set<string>();
+      const out: R[] = [];
+      for (const row of arr) {
+        const k = keyOf(row);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        out.push(row);
+      }
+      return out;
+    };
+    return {
+      ...record,
+      conditions: keepFirstBy(record.conditions, (c) => this.normalize(c.name)),
+      medications: keepFirstBy(record.medications, (m) =>
+        this.normalize(m.name),
+      ),
+      allergies: keepFirstBy(record.allergies, (a) =>
+        this.normalize(a.substance),
+      ),
+      emergencyContacts: keepFirstBy(record.emergencyContacts, (e) =>
+        this.normalize(e.phoneNumber),
+      ),
+    };
   }
 
   async updateForUser(userId: string, dto: UpdateMedicalRecordDto) {
@@ -79,10 +121,18 @@ export class MedicalRecordsService {
 
   async createAllergy(userId: string, dto: CreateAllergyDto) {
     const medicalRecordId = await this.ensureOwnedRecordId(userId);
+    const substance = dto.substance.trim();
+    const existing = await this.prisma.allergy.findMany({
+      where: { medicalRecordId },
+      select: { substance: true },
+    });
+    if (existing.some((a) => this.normalize(a.substance) === this.normalize(substance))) {
+      throw new ConflictException('Allergy already exists');
+    }
     await this.prisma.allergy.create({
       data: {
         medicalRecordId,
-        substance: dto.substance.trim(),
+        substance,
         severity: dto.severity?.trim() || null,
         reaction: dto.reaction?.trim() || null,
       },
@@ -117,10 +167,18 @@ export class MedicalRecordsService {
 
   async createCondition(userId: string, dto: CreateConditionDto) {
     const medicalRecordId = await this.ensureOwnedRecordId(userId);
+    const name = dto.name.trim();
+    const existing = await this.prisma.condition.findMany({
+      where: { medicalRecordId },
+      select: { name: true },
+    });
+    if (existing.some((c) => this.normalize(c.name) === this.normalize(name))) {
+      throw new ConflictException('Condition already exists');
+    }
     await this.prisma.condition.create({
       data: {
         medicalRecordId,
-        name: dto.name.trim(),
+        name,
         status: dto.status?.trim() || 'active',
         icdCode: dto.icdCode?.trim() || null,
         diagnosedAt: dto.diagnosedAt ? new Date(dto.diagnosedAt) : null,
@@ -164,10 +222,18 @@ export class MedicalRecordsService {
 
   async createMedication(userId: string, dto: CreateMedicationDto) {
     const medicalRecordId = await this.ensureOwnedRecordId(userId);
+    const name = dto.name.trim();
+    const existing = await this.prisma.medication.findMany({
+      where: { medicalRecordId },
+      select: { name: true },
+    });
+    if (existing.some((m) => this.normalize(m.name) === this.normalize(name))) {
+      throw new ConflictException('Medication already exists');
+    }
     await this.prisma.medication.create({
       data: {
         medicalRecordId,
-        name: dto.name.trim(),
+        name,
         dose: dto.dose?.trim() || null,
         frequency: dto.frequency?.trim() || null,
         notes: dto.notes?.trim() || null,
@@ -208,12 +274,20 @@ export class MedicalRecordsService {
     dto: CreateEmergencyContactDto,
   ) {
     const medicalRecordId = await this.ensureOwnedRecordId(userId);
+    const phoneNumber = dto.phoneNumber.trim();
+    const existing = await this.prisma.emergencyContact.findMany({
+      where: { medicalRecordId },
+      select: { phoneNumber: true },
+    });
+    if (existing.some((e) => this.normalize(e.phoneNumber) === this.normalize(phoneNumber))) {
+      throw new ConflictException('Contact with this phone already exists');
+    }
     await this.prisma.emergencyContact.create({
       data: {
         medicalRecordId,
         name: dto.name.trim(),
         relationship: dto.relationship.trim(),
-        phoneNumber: dto.phoneNumber.trim(),
+        phoneNumber,
       },
     });
     return this.getForUser(userId);

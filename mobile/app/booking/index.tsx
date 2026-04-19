@@ -216,14 +216,15 @@ export default function BookingScreen() {
     router.back();
   }
 
-  const headerSubtitle =
-    step === 'hospital'
-      ? t('booking.step1of4')
-      : step === 'department'
-        ? t('booking.step2of4')
-        : step === 'schedule'
-          ? t('booking.step3of4')
-          : t('booking.step4of4');
+  // ER booking skips the doctor step — 3 total steps instead of 4.
+  const totalSteps = isER ? 3 : 4;
+  const stepNumber =
+    step === 'hospital' ? 1 : step === 'department' ? 2 : step === 'schedule' ? 3 : 4;
+  const headerSubtitle = t('booking.stepOf', {
+    current: stepNumber,
+    total: totalSteps,
+    defaultValue: `Step ${stepNumber} of ${totalSteps}`,
+  });
 
   const headerTitle =
     step === 'hospital'
@@ -467,9 +468,10 @@ export default function BookingScreen() {
               multiline
             />
             <GradientButton
-              label={t('booking.continueToDoctor')}
-              onPress={onContinueToDoctor}
+              label={isER ? t('booking.confirm') : t('booking.continueToDoctor')}
+              onPress={isER ? onConfirm : onContinueToDoctor}
               disabled={selectedHour === null}
+              loading={isER ? bookMutation.isPending : false}
             />
             <Button
               label={t('common.cancel')}

@@ -133,7 +133,7 @@ export default function EmergencyScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: '#FFF5F5' }}
+      style={{ flex: 1, backgroundColor: colors.surface.raised }}
       contentContainerStyle={{ paddingBottom: spacing.xxl }}
       showsVerticalScrollIndicator={false}
     >
@@ -460,7 +460,7 @@ function useStyles(colors: AppColors) {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.base,
     borderRadius: radius.xl,
     padding: spacing.lg,
     ...shadow.soft,
@@ -484,7 +484,7 @@ function useStyles(colors: AppColors) {
     color: colors.text.primary,
   },
   infoCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.base,
     borderRadius: radius.xl,
     padding: spacing.lg,
     gap: spacing.md,
@@ -550,7 +550,7 @@ function useStyles(colors: AppColors) {
     color: colors.text.primary,
   },
   contactsCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.base,
     borderRadius: radius.xl,
     padding: spacing.lg,
     gap: spacing.md,

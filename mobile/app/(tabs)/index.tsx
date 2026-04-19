@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,17 +11,21 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { GradientHeader } from '@components/GradientHeader';
 import { SectionContainer } from '@components/SectionContainer';
 import { ListItem } from '@components/ListItem';
 import { Card } from '@components/Card';
 import { FloatingChatButton } from '@components/FloatingChatButton';
+import { ReminderItem } from '@components/ReminderItem';
 import { useAuthStore } from '@stores/auth';
 import {
-  listUpcomingReminders,
+  deleteReminder,
+  listReminders,
   Reminder,
+  updateReminder,
 } from '@services/api/reminders.api';
+import { apiErrorMessage } from '@services/api/errors';
 import { listAppointments, Appointment } from '@services/api/appointments.api';
 import { getUnreadCount } from '@services/api/doctors.api';
 import {
@@ -47,32 +52,6 @@ function formatRelative(iso: string): string {
   return days >= 0 ? `in ${days}d` : `${-days}d ago`;
 }
 
-function reminderIcon(type: Reminder['type']) {
-  switch (type) {
-    case 'MEDICATION':
-      return 'medical' as const;
-    case 'APPOINTMENT':
-      return 'calendar' as const;
-    case 'CHECKUP':
-      return 'pulse' as const;
-    default:
-      return 'notifications' as const;
-  }
-}
-
-function reminderTint(type: Reminder['type']): Tint {
-  switch (type) {
-    case 'MEDICATION':
-      return 'teal';
-    case 'APPOINTMENT':
-      return 'blue';
-    case 'CHECKUP':
-      return 'green';
-    default:
-      return 'gray';
-  }
-}
-
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.language === 'ar';
@@ -82,11 +61,73 @@ export default function HomeScreen() {
   const tileWidth = (width - spacing.lg * 2 - spacing.md) / 2;
   const { colors } = useTheme();
   const styles = useStyles(colors);
+  const qc = useQueryClient();
 
-  const { data: reminders } = useQuery({
-    queryKey: ['reminders', 'upcoming'],
-    queryFn: () => listUpcomingReminders(3),
+  // Share the cache key with the reminders tab so marking done / deleting
+  // here updates the other screen instantly (and vice-versa).
+  const { data: allReminders } = useQuery({
+    queryKey: ['reminders'],
+    queryFn: listReminders,
   });
+
+  const isToday = (iso: string) => {
+    const d = new Date(iso);
+    const now = new Date();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  };
+
+  const HOME_REMINDER_LIMIT = 2;
+  const todaysReminders = (allReminders ?? []).filter((r) =>
+    isToday(r.scheduledAt),
+  );
+  const reminders = todaysReminders.slice(0, HOME_REMINDER_LIMIT);
+  const extraRemindersCount = Math.max(
+    0,
+    todaysReminders.length - HOME_REMINDER_LIMIT,
+  );
+
+  const markDone = useMutation({
+    mutationFn: (r: Reminder) =>
+      updateReminder(r.id, {
+        status: r.status === 'DONE' ? 'PENDING' : 'DONE',
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reminders'] });
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteReminder(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reminders'] });
+    },
+    onError: (err) => {
+      Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
+    },
+  });
+
+  const confirmDelete = (r: Reminder) => {
+    if (r.source === 'PRESCRIPTION') {
+      Alert.alert(
+        t('reminders.fromDoctorTitle'),
+        t('reminders.fromDoctorMessage'),
+        [{ text: t('common.done') }],
+      );
+      return;
+    }
+    Alert.alert(t('common.delete'), r.title, [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: () => remove.mutate(r.id),
+      },
+    ]);
+  };
 
   const { data: appointments } = useQuery({
     queryKey: ['appointments'],
@@ -261,23 +302,37 @@ export default function HomeScreen() {
             onPress: () => router.push('/(tabs)/reminders'),
           }}
         >
-          {reminders && reminders.length > 0 ? (
-            reminders.map((r) => (
-              <ListItem
-                key={r.id}
-                icon={reminderIcon(r.type)}
-                tint={reminderTint(r.type)}
-                title={r.title}
-                subtitle={r.subtitle ?? undefined}
-                onPress={() => router.push('/(tabs)/reminders')}
-                chevron
-                trailing={
-                  <Text style={styles.trailingTime}>
-                    {formatRelative(r.scheduledAt)}
+          {reminders.length > 0 ? (
+            <>
+              {reminders.map((r) => (
+                <ReminderItem
+                  key={r.id}
+                  reminder={r}
+                  onToggle={() => markDone.mutate(r)}
+                  onDelete={() => confirmDelete(r)}
+                />
+              ))}
+              {extraRemindersCount > 0 ? (
+                <Pressable
+                  onPress={() => router.push('/(tabs)/reminders')}
+                  style={({ pressed }) => [
+                    styles.showMore,
+                    pressed && { opacity: 0.85 },
+                  ]}
+                >
+                  <Text style={styles.showMoreText}>
+                    {t('home.showMoreReminders', {
+                      count: extraRemindersCount,
+                    })}
                   </Text>
-                }
-              />
-            ))
+                  <Ionicons
+                    name={isRtl ? 'chevron-back' : 'chevron-forward'}
+                    size={16}
+                    color={colors.brand.primary}
+                  />
+                </Pressable>
+              ) : null}
+            </>
           ) : (
             <Card variant="outline" padding="md">
               <Text style={styles.empty}>{t('home.noReminders')}</Text>
@@ -306,7 +361,7 @@ function useStyles(colors: AppColors) {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.surface.base,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.xl,
     padding: spacing.md,
     ...shadow.raised,
@@ -315,18 +370,18 @@ function useStyles(colors: AppColors) {
     width: 40,
     height: 40,
     borderRadius: radius.lg,
-    backgroundColor: colors.tint.red.bg,
+    backgroundColor: '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
   },
   sosTitle: {
     fontSize: typography.size.md,
     fontWeight: typography.weight.bold,
-    color: colors.text.primary,
+    color: '#0F172A',
   },
   sosSubtitle: {
     fontSize: typography.size.xs,
-    color: colors.text.secondary,
+    color: '#475569',
     marginTop: 2,
   },
   sosPill: {
@@ -393,6 +448,19 @@ function useStyles(colors: AppColors) {
   empty: {
     color: colors.text.secondary,
     fontSize: typography.size.sm,
+  },
+  showMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  showMoreText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.brand.primary,
   },
 }), [colors]);
 }

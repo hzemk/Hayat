@@ -29,6 +29,17 @@ import {
 import { applyRtl, Locale } from '@i18n/index';
 import { AppColors, radius, shadow, spacing, typography, useTheme } from '@theme/index';
 
+function formatDob(raw: string | null | undefined, lang: string): string {
+  if (!raw) return '—';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(lang === 'ar' ? 'ar-JO' : 'en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const { mode: themeMode, setMode: setThemeMode, colors } = useTheme();
@@ -240,7 +251,7 @@ export default function ProfileScreen() {
               <InfoRow
                 icon="calendar"
                 label={t('emergencyId.dob')}
-                value={user?.dateOfBirth ?? '—'}
+                value={formatDob(user?.dateOfBirth, i18n.language)}
               />
             </View>
           </Card>
