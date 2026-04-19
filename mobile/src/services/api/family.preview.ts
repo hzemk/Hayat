@@ -24,6 +24,7 @@ const omarReminders: Reminder[] = [
     status: 'PENDING',
     source: 'MANUAL',
     completedAt: null,
+    endsAt: null,
   },
   {
     id: 'prev-rem-omar-2',
@@ -35,6 +36,7 @@ const omarReminders: Reminder[] = [
     status: 'PENDING',
     source: 'MANUAL',
     completedAt: null,
+    endsAt: null,
   },
   {
     id: 'prev-rem-omar-3',
@@ -46,6 +48,7 @@ const omarReminders: Reminder[] = [
     status: 'PENDING',
     source: 'MANUAL',
     completedAt: null,
+    endsAt: null,
   },
   {
     id: 'prev-rem-omar-4',
@@ -57,6 +60,7 @@ const omarReminders: Reminder[] = [
     status: 'PENDING',
     source: 'MANUAL',
     completedAt: null,
+    endsAt: null,
   },
   {
     id: 'prev-rem-omar-5',
@@ -68,6 +72,7 @@ const omarReminders: Reminder[] = [
     status: 'PENDING',
     source: 'MANUAL',
     completedAt: null,
+    endsAt: null,
   },
 ];
 
@@ -87,6 +92,7 @@ const laylaReminders: Reminder[] = [
     status: 'PENDING',
     source: 'MANUAL',
     completedAt: null,
+    endsAt: null,
   },
 ];
 

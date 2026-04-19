@@ -1,0 +1,6 @@
+# Windows WSL metadata
+*:Zone.Identifier
+*.Zone.Identifier
+
+# Reference screenshots kept locally only
+insu.jpg

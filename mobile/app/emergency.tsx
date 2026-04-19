@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
+import * as SMS from 'expo-sms';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -99,10 +100,47 @@ export default function EmergencyScreen() {
         longitude: next.lng,
       });
       setResult(res);
+      await sendSosSms(sosContacts ?? [], next);
     } catch (err) {
       Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function sendSosSms(
+    contacts: SosContact[],
+    loc: { lat: number; lng: number },
+  ) {
+    if (contacts.length === 0) return;
+    const available = await SMS.isAvailableAsync();
+    if (!available) {
+      Alert.alert(t('common.error'), t('emergency.smsUnavailable'));
+      return;
+    }
+    const mapUrl = `https://maps.google.com/?q=${loc.lat.toFixed(6)},${loc.lng.toFixed(6)}`;
+    const message = t('emergency.smsMessage', {
+      name: user?.fullName || 'I',
+      mapUrl,
+    });
+    const numbers = contacts
+      .map((c) => c.phoneNumber.replace(/\s|-/g, ''))
+      .filter(Boolean);
+    try {
+      await SMS.sendSMSAsync(numbers, message);
+    } catch {
+      // User cancelled the composer — not an error state.
+    }
+  }
+
+  async function sendSmsToContact(contact: SosContact) {
+    try {
+      const next = await captureLocation();
+      if (!next) return;
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      await sendSosSms([contact], next);
+    } catch (err) {
+      Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
     }
   }
 
@@ -256,7 +294,8 @@ export default function EmergencyScreen() {
 
         <SosContactsSection
           contacts={sosContacts ?? []}
-          onSend={sendWhatsApp}
+          onSendWhatsApp={sendWhatsApp}
+          onSendSms={sendSmsToContact}
         />
       </View>
     </ScrollView>
@@ -265,10 +304,12 @@ export default function EmergencyScreen() {
 
 function SosContactsSection({
   contacts,
-  onSend,
+  onSendWhatsApp,
+  onSendSms,
 }: {
   contacts: SosContact[];
-  onSend: (c: SosContact) => void | Promise<void>;
+  onSendWhatsApp: (c: SosContact) => void | Promise<void>;
+  onSendSms: (c: SosContact) => void | Promise<void>;
 }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -309,16 +350,9 @@ function SosContactsSection({
         {t('emergency.alertContactsHint')}
       </Text>
       {contacts.map((c) => (
-        <Pressable
-          key={c.id}
-          onPress={() => onSend(c)}
-          style={({ pressed }) => [
-            styles.contactRow,
-            pressed && { opacity: 0.85 },
-          ]}
-        >
+        <View key={c.id} style={styles.contactRow}>
           <View style={styles.waIcon}>
-            <Ionicons name="logo-whatsapp" size={22} color="#fff" />
+            <Ionicons name="person" size={20} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.contactName} numberOfLines={1}>
@@ -329,13 +363,33 @@ function SosContactsSection({
               {c.relationship ? ` · ${c.relationship}` : ''}
             </Text>
           </View>
-          <View style={styles.sendPill}>
-            <Ionicons name="send" size={14} color="#fff" />
+          <Pressable
+            onPress={() => onSendSms(c)}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.smsPill,
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Ionicons name="chatbox" size={14} color="#fff" />
+            <Text style={styles.sendPillText}>
+              {t('emergency.sendSms')}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => onSendWhatsApp(c)}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.sendPill,
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Ionicons name="logo-whatsapp" size={14} color="#fff" />
             <Text style={styles.sendPillText}>
               {t('emergency.sendWhatsApp')}
             </Text>
-          </View>
-        </Pressable>
+          </Pressable>
+        </View>
       ))}
     </View>
   );
@@ -605,6 +659,16 @@ function useStyles(colors: AppColors) {
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 6,
     borderRadius: radius.pill,
+  },
+  smsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.emergency.base,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    marginRight: 6,
   },
   sendPillText: {
     color: '#fff',

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -17,11 +19,16 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  createPatientReminder,
   DoctorMessage,
   getDoctorPatient,
   getDoctorThread,
   sendDoctorMessageToPatient,
 } from '@services/api/doctor-portal.api';
+import { apiErrorMessage } from '@services/api/errors';
+import type { ReminderType } from '@services/api/reminders.api';
+import { Button } from '@components/Button';
+import { TextField } from '@components/TextField';
 import {
   AppColors,
   radius,
@@ -55,6 +62,7 @@ export default function DoctorChatThread() {
 
   const [input, setInput] = useState('');
   const [pending, setPending] = useState<DoctorMessage[]>([]);
+  const [showReminder, setShowReminder] = useState(false);
   const listRef = useRef<FlatList<DoctorMessage>>(null);
 
   const sendMutation = useMutation({
@@ -194,6 +202,18 @@ export default function DoctorChatThread() {
               {t('doctorPortal.patient.issueRx')}
             </Text>
           </Pressable>
+          <Pressable
+            onPress={() => setShowReminder(true)}
+            style={({ pressed }) => [
+              styles.reminderAction,
+              pressed && { opacity: 0.9 },
+            ]}
+          >
+            <Ionicons name="alarm" size={16} color={colors.brand.primary} />
+            <Text style={styles.reminderActionText}>
+              {t('doctorPortal.patient.addReminder')}
+            </Text>
+          </Pressable>
         </View>
 
         <View style={styles.composer}>
@@ -219,7 +239,188 @@ export default function DoctorChatThread() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+      <ReminderSheet
+        visible={showReminder}
+        patientId={patientId!}
+        onClose={() => setShowReminder(false)}
+        onCreated={() => {
+          setShowReminder(false);
+          queryClient.invalidateQueries({
+            queryKey: ['doctor-thread', patientId],
+          });
+          queryClient.invalidateQueries({ queryKey: ['doctor-threads'] });
+        }}
+      />
     </SafeAreaView>
+  );
+}
+
+const REMINDER_TYPES: ReminderType[] = [
+  'MEDICATION',
+  'APPOINTMENT',
+  'CHECKUP',
+  'OTHER',
+];
+
+function reminderTypeIcon(type: ReminderType) {
+  switch (type) {
+    case 'MEDICATION':
+      return 'medical' as const;
+    case 'APPOINTMENT':
+      return 'calendar' as const;
+    case 'CHECKUP':
+      return 'pulse' as const;
+    default:
+      return 'notifications' as const;
+  }
+}
+
+function ReminderSheet({
+  visible,
+  patientId,
+  onClose,
+  onCreated,
+}: {
+  visible: boolean;
+  patientId: string;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useStyles(colors);
+  const [type, setType] = useState<ReminderType>('MEDICATION');
+  const [title, setTitle] = useState('');
+  const [subtitle, setSubtitle] = useState('');
+  const [hoursFromNow, setHoursFromNow] = useState('1');
+  const [durationDays, setDurationDays] = useState('');
+
+  const createMutation = useMutation({
+    mutationFn: () => {
+      const hrs = parseFloat(hoursFromNow) || 1;
+      const scheduledAt = new Date(
+        Date.now() + hrs * 60 * 60 * 1000,
+      ).toISOString();
+      const dur = parseInt(durationDays, 10);
+      return createPatientReminder(patientId, {
+        type,
+        title: title.trim(),
+        subtitle: subtitle.trim() || undefined,
+        scheduledAt,
+        durationDays: Number.isFinite(dur) && dur > 0 ? dur : undefined,
+      });
+    },
+    onSuccess: () => {
+      setTitle('');
+      setSubtitle('');
+      setHoursFromNow('1');
+      setDurationDays('');
+      setType('MEDICATION');
+      onCreated();
+    },
+    onError: (err) => {
+      Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
+    },
+  });
+
+  function onSave() {
+    if (title.trim().length < 1) {
+      Alert.alert(
+        t('common.error'),
+        t('doctorPortal.reminders.titleRequired'),
+      );
+      return;
+    }
+    createMutation.mutate();
+  }
+
+  const typeLabel: Record<ReminderType, string> = {
+    MEDICATION: t('reminders.medication'),
+    APPOINTMENT: t('reminders.appointment'),
+    CHECKUP: t('reminders.checkup'),
+    OTHER: t('reminders.other'),
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.sheetBackdrop} onPress={onClose} />
+      <View style={styles.sheet}>
+        <View style={styles.sheetHandle} />
+        <Text style={styles.sheetTitle}>
+          {t('doctorPortal.reminders.newReminder')}
+        </Text>
+
+        <View style={styles.typePicker}>
+          {REMINDER_TYPES.map((ty) => {
+            const active = type === ty;
+            return (
+              <Pressable
+                key={ty}
+                onPress={() => setType(ty)}
+                style={[
+                  styles.typeChip,
+                  active && {
+                    backgroundColor: colors.brand.primary,
+                    borderColor: colors.brand.primary,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={reminderTypeIcon(ty)}
+                  size={14}
+                  color={active ? '#fff' : colors.text.secondary}
+                />
+                <Text
+                  style={[styles.typeChipText, active && { color: '#fff' }]}
+                >
+                  {typeLabel[ty]}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <TextField
+          label={t('reminders.title')}
+          value={title}
+          onChangeText={setTitle}
+          placeholder="Metformin 500mg"
+        />
+        <TextField
+          label={t('doctorPortal.reminders.note')}
+          value={subtitle}
+          onChangeText={setSubtitle}
+          placeholder="After breakfast"
+        />
+        <TextField
+          label={t('doctorPortal.reminders.hoursFromNow')}
+          value={hoursFromNow}
+          onChangeText={setHoursFromNow}
+          keyboardType="decimal-pad"
+        />
+        <TextField
+          label={t('doctorPortal.reminders.durationDays')}
+          value={durationDays}
+          onChangeText={(v) => setDurationDays(v.replace(/[^0-9]/g, ''))}
+          keyboardType="number-pad"
+          placeholder="7"
+        />
+        <Button
+          label={
+            createMutation.isPending
+              ? t('doctorPortal.reminders.saving')
+              : t('doctorPortal.reminders.save')
+          }
+          onPress={onSave}
+          loading={createMutation.isPending}
+        />
+      </View>
+    </Modal>
   );
 }
 
@@ -407,6 +608,72 @@ function useStyles(colors: AppColors) {
     color: '#fff',
     fontWeight: typography.weight.bold,
     fontSize: typography.size.sm,
+  },
+  reminderAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    height: 38,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.tint.teal.bg,
+    borderWidth: 1,
+    borderColor: colors.brand.primary,
+  },
+  reminderActionText: {
+    color: colors.brand.primary,
+    fontWeight: typography.weight.bold,
+    fontSize: typography.size.sm,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.surface.base,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    padding: spacing.xl,
+    paddingBottom: Platform.OS === 'ios' ? spacing.xxxl : spacing.xl,
+    gap: spacing.md,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.surface.border,
+    marginBottom: spacing.sm,
+  },
+  sheetTitle: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.text.primary,
+  },
+  typePicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  typeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.surface.border,
+    backgroundColor: colors.surface.raised,
+  },
+  typeChipText: {
+    fontSize: typography.size.sm,
+    color: colors.text.secondary,
+    fontWeight: typography.weight.medium,
   },
   composer: {
     flexDirection: 'row',

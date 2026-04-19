@@ -18,3 +18,7 @@ export async function updateMe(payload: UpdateProfilePayload) {
   const { data } = await api.patch<User>('/users/me', payload);
   return data;
 }
+
+export async function updateMyPushToken(expoPushToken: string | null) {
+  await api.patch('/users/me/push-token', { expoPushToken });
+}

@@ -22,7 +22,9 @@ import { SectionContainer } from '@components/SectionContainer';
 import { InfoChip } from '@components/InfoChip';
 import {
   getDoctor,
+  getDoctorSchedule,
   selectDefaultDoctor,
+  type DoctorScheduleDay,
 } from '@services/api/doctors.api';
 import { useAuthStore } from '@stores/auth';
 import { apiErrorMessage } from '@services/api/errors';
@@ -50,6 +52,12 @@ export default function DoctorProfileScreen() {
   const { data: doctor, isLoading } = useQuery({
     queryKey: ['doctor', id],
     queryFn: () => getDoctor(id!),
+    enabled: !!id,
+  });
+
+  const scheduleQuery = useQuery({
+    queryKey: ['doctor-schedule', id],
+    queryFn: () => getDoctorSchedule(id!),
     enabled: !!id,
   });
 
@@ -221,6 +229,12 @@ export default function DoctorProfileScreen() {
             </Card>
           </SectionContainer>
 
+          <SectionContainer title={t('doctors.schedule') || 'Schedule'}>
+            <Card padding="md" style={styles.detailsCard}>
+              <ScheduleList days={scheduleQuery.data ?? []} />
+            </Card>
+          </SectionContainer>
+
           {!isDefault ? (
             <Pressable
               onPress={() => selectMutation.mutate()}
@@ -252,6 +266,43 @@ export default function DoctorProfileScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function ScheduleList({ days }: { days: DoctorScheduleDay[] }) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useStyles(colors);
+  if (days.length === 0) {
+    return (
+      <Text style={styles.detailValue}>
+        {t('doctors.noSchedule') || 'No schedule published yet.'}
+      </Text>
+    );
+  }
+  const byDay = new Map(days.map((d) => [d.dayOfWeek, d]));
+  return (
+    <View style={{ gap: 6 }}>
+      {[0, 1, 2, 3, 4, 5, 6].map((d) => {
+        const slot = byDay.get(d);
+        const fmt = (m: number) =>
+          `${Math.floor(m / 60)
+            .toString()
+            .padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
+        return (
+          <View key={d} style={styles.detailRow}>
+            <Text style={[styles.detailLabel, { width: 84 }]}>
+              {t(`doctorPortal.schedule.days.${d}`)}
+            </Text>
+            <Text style={styles.detailValue}>
+              {slot
+                ? `${fmt(slot.startMinutes)} – ${fmt(slot.endMinutes)}`
+                : t('doctors.closed') || 'Closed'}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
   );
 }
 

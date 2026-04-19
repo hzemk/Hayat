@@ -129,6 +129,13 @@ export default function DoctorProfileScreen() {
               />
             </View>
           </Card>
+          <ListItem
+            icon="calendar"
+            title={t('doctorPortal.schedule.manage')}
+            subtitle={t('doctorPortal.schedule.manageHint')}
+            chevron
+            onPress={() => router.push('/(doctor)/schedule')}
+          />
         </SectionContainer>
 
         <SectionContainer title={t('profile.personalInfo')}>

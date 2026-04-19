@@ -8,6 +8,7 @@ import {
 import { AuthProvider, User, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '@prisma-db/prisma.service';
+import { InsuranceCardService } from '@modules/insurance-card/insurance-card.service';
 import { TokensService } from './tokens.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -36,6 +37,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tokens: TokensService,
+    private readonly insuranceCard: InsuranceCardService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -168,6 +170,13 @@ export class AuthService {
 
     if (!isDr) {
       await this.seedSanadMedicalDefaults(user.id);
+      try {
+        await this.insuranceCard.syncFromSanad(user.id);
+      } catch (err) {
+        this.logger.warn(
+          `Sanad insurance auto-sync failed: ${(err as Error).message}`,
+        );
+      }
     }
 
     this.logger.log(`Sanad login for subject=${identity.subject}`);

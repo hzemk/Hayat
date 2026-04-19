@@ -1,17 +1,21 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { DoctorPortalService } from './doctor-portal.service';
 import { DoctorSendMessageDto } from './dto/doctor-send-message.dto';
 import { IssuePrescriptionDto } from './dto/issue-prescription.dto';
+import { CreateDoctorReminderDto } from './dto/create-doctor-reminder.dto';
+import { SetScheduleDto } from './dto/set-schedule.dto';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Roles } from '@common/decorators/roles.decorator';
 import { RolesGuard } from '@common/guards/roles.guard';
@@ -33,6 +37,19 @@ export class DoctorPortalController {
     @Body('isAvailable') isAvailable: boolean,
   ) {
     return this.service.updateAvailability(userId, !!isAvailable);
+  }
+
+  @Get('me/schedule')
+  getSchedule(@CurrentUser('userId') userId: string) {
+    return this.service.getMySchedule(userId);
+  }
+
+  @Put('me/schedule')
+  setSchedule(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: SetScheduleDto,
+  ) {
+    return this.service.setMySchedule(userId, dto.days);
   }
 
   @Get('patients')
@@ -82,5 +99,33 @@ export class DoctorPortalController {
   @Get('prescriptions')
   listIssued(@CurrentUser('userId') userId: string) {
     return this.service.listIssued(userId);
+  }
+
+  @Get('patients/:patientId/reminders')
+  listPatientReminders(
+    @CurrentUser('userId') userId: string,
+    @Param('patientId') patientId: string,
+  ) {
+    return this.service.listPatientReminders(userId, patientId);
+  }
+
+  @Post('patients/:patientId/reminders')
+  @HttpCode(201)
+  createPatientReminder(
+    @CurrentUser('userId') userId: string,
+    @Param('patientId') patientId: string,
+    @Body() dto: CreateDoctorReminderDto,
+  ) {
+    return this.service.createPatientReminder(userId, patientId, dto);
+  }
+
+  @Delete('patients/:patientId/reminders/:reminderId')
+  @HttpCode(204)
+  deletePatientReminder(
+    @CurrentUser('userId') userId: string,
+    @Param('patientId') patientId: string,
+    @Param('reminderId') reminderId: string,
+  ) {
+    return this.service.deletePatientReminder(userId, patientId, reminderId);
   }
 }

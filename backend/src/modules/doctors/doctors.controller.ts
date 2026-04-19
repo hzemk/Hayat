@@ -25,6 +25,11 @@ export class DoctorsController {
     return this.doctors.getDoctor(id);
   }
 
+  @Get('doctors/:id/schedule')
+  schedule(@Param('id') id: string) {
+    return this.doctors.getSchedule(id);
+  }
+
   @Post('doctors/:id/select')
   @HttpCode(200)
   select(@CurrentUser('userId') userId: string, @Param('id') id: string) {

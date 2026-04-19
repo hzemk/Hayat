@@ -3,7 +3,6 @@ import axios, {
   AxiosRequestConfig,
   InternalAxiosRequestConfig,
 } from 'axios';
-import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { tokenStorage } from '@services/storage';
 
@@ -11,12 +10,7 @@ const envBase =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
   (Constants.expoConfig?.extra as { apiBaseUrl?: string } | undefined)?.apiBaseUrl;
 
-// On web the browser and backend typically run on the same host, so always
-// prefer localhost — LAN IPs force a cross-origin call and often fail CORS.
-const baseURL =
-  Platform.OS === 'web'
-    ? 'http://localhost:4000/api/v1'
-    : envBase ?? 'http://localhost:4000/api/v1';
+const baseURL = envBase ?? 'http://localhost:4000/api/v1';
 
 export const api = axios.create({
   baseURL,
