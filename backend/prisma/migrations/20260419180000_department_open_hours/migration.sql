@@ -1,0 +1,3 @@
+-- Add openHours JSON + updatedAt to Department
+ALTER TABLE "Department" ADD COLUMN IF NOT EXISTS "openHours" JSONB;
+ALTER TABLE "Department" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Hayat",
+    "slug": "hayat",
+    "scheme": "hayat",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hayat.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Hayat uses your location to find nearby hospitals and to send it during emergencies.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Hayat uses your location to find nearby hospitals and to send it during emergencies.",
+        "CFBundleLocalizations": ["ar", "en"],
+        "CFBundleDevelopmentRegion": "ar"
+      }
+    },
+    "android": {
+      "package": "com.hayat.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "INTERNET"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "locales": {
+      "ar": "./src/i18n/locales/ar.json",
+      "en": "./src/i18n/locales/en.json"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-localization",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Hayat uses your location to find nearby hospitals and to send it during emergencies."
+        }
+      ]
+    ],
+    "experiments": { "typedRoutes": true },
+    "extra": {
+      "apiBaseUrl": "http://localhost:4000/api/v1"
+    }
+  }
+}
