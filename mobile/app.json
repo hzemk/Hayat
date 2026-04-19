@@ -3,7 +3,7 @@
     "name": "Hayat",
     "slug": "hayat",
     "scheme": "hayat",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,7 +14,8 @@
         "NSLocationWhenInUseUsageDescription": "Hayat uses your location to find nearby hospitals and to send it during emergencies.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Hayat uses your location to find nearby hospitals and to send it during emergencies.",
         "CFBundleLocalizations": ["ar", "en"],
-        "CFBundleDevelopmentRegion": "ar"
+        "CFBundleDevelopmentRegion": "ar",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
