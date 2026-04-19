@@ -21,6 +21,7 @@ import { DoctorsModule } from './modules/doctors/doctors.module';
 import { DoctorPortalModule } from './modules/doctor-portal/doctor-portal.module';
 import { HospitalPortalModule } from './modules/hospital-portal/hospital-portal.module';
 import { InsuranceCardModule } from './modules/insurance-card/insurance-card.module';
+import { PushModule } from './modules/push/push.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
@@ -33,6 +34,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     }),
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 60 }]),
     PrismaModule,
+    PushModule,
     AuthModule,
     UsersModule,
     AiModule,

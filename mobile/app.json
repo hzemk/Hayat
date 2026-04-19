@@ -23,7 +23,8 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "INTERNET"
-      ]
+      ],
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -37,6 +38,7 @@
       "expo-router",
       "expo-localization",
       "expo-secure-store",
+      "expo-notifications",
       [
         "expo-location",
         {

@@ -6,9 +6,11 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TokensService } from './tokens.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { InsuranceCardModule } from '../insurance-card/insurance-card.module';
 
 @Module({
   imports: [
+    InsuranceCardModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

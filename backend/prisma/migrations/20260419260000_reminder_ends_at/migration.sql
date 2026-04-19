@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Reminder"
+  ADD COLUMN IF NOT EXISTS "endsAt" TIMESTAMP(3);

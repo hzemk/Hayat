@@ -82,6 +82,19 @@ export async function listMyThreads() {
   return data;
 }
 
+export interface DoctorScheduleDay {
+  dayOfWeek: number;
+  startMinutes: number;
+  endMinutes: number;
+}
+
+export async function getDoctorSchedule(doctorId: string) {
+  const { data } = await api.get<DoctorScheduleDay[]>(
+    `/doctors/${doctorId}/schedule`,
+  );
+  return data;
+}
+
 export async function getUnreadCount() {
   const { data } = await api.get<{ count: number }>(
     '/doctor-threads/unread-count',

@@ -3,6 +3,11 @@
     "name": "Hayat",
     "tagline": "Your health, in your pocket"
   },
+  "errors": {
+    "boundaryTitle": "Something went wrong",
+    "boundarySubtitle": "The screen hit an unexpected error. You can try again without restarting the app.",
+    "boundaryRetry": "Try again"
+  },
   "auth": {
     "signIn": "Sign in",
     "signUp": "Create account",
@@ -53,6 +58,10 @@
     "signInAsPatient": "Continue with Sanad"
   },
   "home": {
+    "cards": "Cards",
+    "seeAll": "See all",
+    "noInsuranceTitle": "Link your insurance",
+    "noInsuranceHint": "Import from Sanad or add it manually",
     "greeting": "Hello, {{name}}",
     "welcomeBack": "Welcome back",
     "urgentCare": "Need urgent care?",
@@ -96,6 +105,9 @@
     "profile": "Profile",
     "about": "About",
     "details": "Details",
+    "schedule": "Schedule",
+    "noSchedule": "No schedule published yet.",
+    "closed": "Closed",
     "license": "License",
     "languages": "Languages",
     "experience": "exp",
@@ -163,13 +175,23 @@
     "emptyToday": "Nothing scheduled for today",
     "todayPending": "Today — to take",
     "todayDone": "Today — taken",
+    "todayUpcoming": "Today — upcoming",
+    "todayExpired": "Today — expired",
+    "upcoming": "Upcoming",
+    "expired": "Expired",
+    "active": "Active",
+    "finished": "Finished",
+    "activeSection": "Currently taking",
+    "upcomingSection": "Upcoming",
+    "finishedSection": "Finished",
     "taken": "Taken",
     "tapToMark": "Tap to mark as taken",
     "markTaken": "Mark as taken",
     "undoTaken": "Mark as not taken",
     "fromPrescription": "From prescription",
-    "fromDoctorTitle": "Prescribed by your doctor",
-    "fromDoctorMessage": "This medicine reminder was added by your doctor. You can only remove reminders you added yourself."
+    "fromDoctorTitle": "Added by your doctor",
+    "fromDoctorMessage": "Reminders are managed by your doctor and can't be removed from here.",
+    "emptyTodayDoctor": "Your doctor hasn't set any reminders for today."
   },
   "hospitals": {
     "title": "Hospitals",
@@ -319,9 +341,12 @@
     "step1": "Your phone dials 911 immediately.",
     "step2": "We send your GPS location to the nearest hospital.",
     "step3": "An ambulance is dispatched to your location.",
-    "alertContacts": "Alert my SOS contacts on WhatsApp",
-    "alertContactsHint": "Tap Send to open WhatsApp with a pre-filled message and your live location",
-    "sendWhatsApp": "Send",
+    "alertContacts": "Alert my SOS contacts",
+    "alertContactsHint": "Tap SMS or WhatsApp to send a pre-filled alert with your live location",
+    "sendWhatsApp": "WhatsApp",
+    "sendSms": "SMS",
+    "smsUnavailable": "SMS isn't available on this device.",
+    "smsMessage": "🚨 SOS — {{name}} needs emergency help. Live location: {{mapUrl}}",
     "noContactsConfigured": "No SOS contacts yet. Add them in Settings to alert family instantly.",
     "addContacts": "Add SOS contacts",
     "whatsappNotInstalled": "WhatsApp is not installed on this device.",
@@ -551,6 +576,28 @@
       "prescriptions": "Prescriptions",
       "profile": "Profile"
     },
+    "schedule": {
+      "title": "My schedule",
+      "subtitle": "Set the hours you are available each day",
+      "manage": "Manage schedule",
+      "manageHint": "Set your weekly hours so patients can see when you are available",
+      "from": "From",
+      "to": "To",
+      "off": "Off",
+      "save": "Save schedule",
+      "savedTitle": "Schedule saved",
+      "savedBody": "Patients will now see your updated hours.",
+      "errorTitle": "Couldn't save",
+      "days": {
+        "0": "Sunday",
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday"
+      }
+    },
     "inbox": {
       "title": "Patient inbox",
       "greeting": "Good day, Dr. {{name}}",
@@ -608,7 +655,20 @@
     "patient": {
       "snapshot": "Snapshot",
       "chat": "Chat",
-      "issueRx": "Issue Rx"
+      "issueRx": "Issue Rx",
+      "addReminder": "Reminder"
+    },
+    "reminders": {
+      "title": "Patient reminders",
+      "newReminder": "New reminder",
+      "existing": "Current reminders",
+      "empty": "No reminders for this patient yet.",
+      "note": "Note",
+      "hoursFromNow": "In how many hours?",
+      "durationDays": "Duration (days, optional)",
+      "save": "Add reminder",
+      "saving": "Saving…",
+      "titleRequired": "Please enter a title."
     },
     "rx": {
       "title": "New prescription",

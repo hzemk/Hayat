@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as Notifications from 'expo-notifications';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ import i18n from '@i18n/index';
 import { queryClient } from '@services/queryClient';
 import { useAuthStore } from '@stores/auth';
 import { ThemeProvider, useTheme } from '@theme/index';
+import { ErrorBoundary } from '@components/ErrorBoundary';
 
 // Force every cold start to land on the Gate (`app/index.tsx`), so a stale
 // dev-client route like `/chat` can't trap the user on launch.
@@ -25,13 +27,32 @@ export default function RootLayout() {
     hydrate();
   }, [hydrate]);
 
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
+      const data = resp.notification.request.content.data as
+        | { type?: string; doctorId?: string; reminderId?: string }
+        | undefined;
+      if (!data) return;
+      if (data.type === 'doctor-thread' && data.doctorId) {
+        router.push(`/doctors/chat/${data.doctorId}`);
+      } else if (data.type === 'doctor-thread') {
+        router.push('/messages');
+      } else if (data.reminderId) {
+        router.push('/(tabs)/reminders');
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <I18nextProvider i18n={i18n}>
             <ThemeProvider>
-              <ThemedShell />
+              <ErrorBoundary>
+                <ThemedShell />
+              </ErrorBoundary>
             </ThemeProvider>
           </I18nextProvider>
         </QueryClientProvider>

@@ -10,13 +10,21 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '@prisma-db/prisma.service';
+import { PushService } from '@modules/push/push.service';
 import { SendMessageDto } from './dto/send-message.dto';
+
+function truncate(s: string, max = 140): string {
+  return s.length <= max ? s : s.slice(0, max - 1) + '…';
+}
 
 @Injectable()
 export class DoctorsService {
   private readonly logger = new Logger(DoctorsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly push: PushService,
+  ) {}
 
   listDoctors() {
     return this.prisma.doctor.findMany({
@@ -25,6 +33,18 @@ export class DoctorsService {
         user: { select: { id: true, fullName: true, email: true } },
         hospital: { select: { id: true, nameAr: true, nameEn: true } },
         department: { select: { id: true, nameAr: true, nameEn: true, code: true } },
+      },
+    });
+  }
+
+  getSchedule(doctorId: string) {
+    return this.prisma.doctorAvailability.findMany({
+      where: { doctorId, isActive: true },
+      orderBy: { dayOfWeek: 'asc' },
+      select: {
+        dayOfWeek: true,
+        startMinutes: true,
+        endMinutes: true,
       },
     });
   }
@@ -123,6 +143,9 @@ export class DoctorsService {
       data: { lastMessageAt: now, updatedAt: now },
     });
 
+    // Push to the other party.
+    void this.notifyRecipient(thread.patientId, thread.doctorId, sender, dto.body);
+
     // If the patient sent a symptom summary or RX request, auto-reply as doctor
     // with a short acknowledgement so demo feels alive until a real doctor UI exists.
     if (
@@ -134,6 +157,44 @@ export class DoctorsService {
     }
 
     return message;
+  }
+
+  private async notifyRecipient(
+    patientId: string,
+    doctorId: string,
+    sender: DoctorMessageSender,
+    body: string,
+  ) {
+    try {
+      if (sender === DoctorMessageSender.PATIENT) {
+        const doctor = await this.prisma.doctor.findUnique({
+          where: { id: doctorId },
+          select: { userId: true, user: { select: { fullName: true } } },
+        });
+        const patient = await this.prisma.user.findUnique({
+          where: { id: patientId },
+          select: { fullName: true },
+        });
+        if (!doctor) return;
+        await this.push.sendToUser(doctor.userId, {
+          title: patient?.fullName ?? 'Patient',
+          body: truncate(body),
+          data: { type: 'doctor-thread', patientId },
+        });
+      } else if (sender === DoctorMessageSender.DOCTOR) {
+        const doctor = await this.prisma.doctor.findUnique({
+          where: { id: doctorId },
+          select: { user: { select: { fullName: true } } },
+        });
+        await this.push.sendToUser(patientId, {
+          title: doctor?.user?.fullName ?? 'Doctor',
+          body: truncate(body),
+          data: { type: 'doctor-thread', doctorId },
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`notifyRecipient failed: ${(err as Error).message}`);
+    }
   }
 
   private async autoAcknowledge(threadId: string, kind: DoctorMessageKind) {

@@ -36,7 +36,7 @@ export default function MessagesScreen() {
   });
 
   const threads = (threadsQuery.data ?? []).filter(
-    (th) => (th.messages && th.messages.length > 0) || th.lastMessageAt,
+    (th) => th.doctor && ((th.messages && th.messages.length > 0) || th.lastMessageAt),
   );
 
   return (
@@ -113,6 +113,7 @@ function ThreadRow({
   const { colors } = useTheme();
   const styles = useStyles(colors);
   const doctor = thread.doctor;
+  if (!doctor) return null;
   const specialty = isRtl
     ? doctor.specialtyAr ?? doctor.specialty
     : doctor.specialty;

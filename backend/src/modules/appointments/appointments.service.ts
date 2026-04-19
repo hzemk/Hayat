@@ -6,11 +6,15 @@ import {
 } from '@nestjs/common';
 import { AppointmentStatus } from '@prisma/client';
 import { PrismaService } from '@prisma-db/prisma.service';
+import { PushService } from '@modules/push/push.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 
 @Injectable()
 export class AppointmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly push: PushService,
+  ) {}
 
   private readonly include = {
     hospital: { select: { id: true, nameAr: true, nameEn: true, city: true } },
@@ -64,7 +68,7 @@ export class AppointmentsService {
       }
     }
 
-    return this.prisma.appointment.create({
+    const created = await this.prisma.appointment.create({
       data: {
         userId,
         hospitalId: dto.hospitalId,
@@ -75,6 +79,16 @@ export class AppointmentsService {
       },
       include: this.include,
     });
+
+    const hospitalName = created.hospital?.nameEn ?? 'the hospital';
+    const when = created.scheduledAt.toLocaleString();
+    void this.push.sendToUser(userId, {
+      title: 'Appointment booked',
+      body: `${hospitalName} — ${when}`,
+      data: { type: 'appointment', appointmentId: created.id },
+    });
+
+    return created;
   }
 
   async cancel(userId: string, appointmentId: string) {
@@ -83,10 +97,18 @@ export class AppointmentsService {
     if (appt.userId !== userId) throw new ForbiddenException();
     if (appt.status === AppointmentStatus.CANCELLED) return appt;
 
-    return this.prisma.appointment.update({
+    const updated = await this.prisma.appointment.update({
       where: { id: appointmentId },
       data: { status: AppointmentStatus.CANCELLED },
       include: this.include,
     });
+
+    void this.push.sendToUser(userId, {
+      title: 'Appointment cancelled',
+      body: `${updated.hospital?.nameEn ?? 'Appointment'} on ${updated.scheduledAt.toLocaleString()}`,
+      data: { type: 'appointment', appointmentId: updated.id },
+    });
+
+    return updated;
   }
 }

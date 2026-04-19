@@ -28,6 +28,13 @@ export class UsersService {
     return user;
   }
 
+  async setPushToken(userId: string, token: string | null) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { expoPushToken: token },
+    });
+  }
+
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const existing = await this.prisma.user.findUnique({
       where: { id: userId },

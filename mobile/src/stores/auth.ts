@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 import { tokenStorage, userStorage } from '@services/storage';
 import { api, registerForceLogoutHandler } from '@services/api/client';
-import { cancelAllReminderNotifications } from '@services/notifications';
+import {
+  cancelAllReminderNotifications,
+  clearExpoPushToken,
+  registerExpoPushToken,
+} from '@services/notifications';
 
 export type AuthProvider = 'LOCAL' | 'SANAD';
 
@@ -38,6 +42,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     await tokenStorage.saveTokens(accessToken, refreshToken);
     await userStorage.save(user);
     set({ user });
+    void registerExpoPushToken();
   },
 
   setUser(user) {
@@ -53,6 +58,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   async logout() {
     const refresh = await tokenStorage.getRefresh();
+    await clearExpoPushToken().catch(() => undefined);
     if (refresh) {
       await api.post('/auth/logout', { refreshToken: refresh }).catch(() => undefined);
     }

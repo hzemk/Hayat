@@ -1,12 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@prisma-db/prisma.service';
+import { PushService } from '@modules/push/push.service';
 import { CreateEmergencyDto } from './dto/create-emergency.dto';
 
 @Injectable()
 export class EmergencyService {
   private readonly logger = new Logger(EmergencyService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly push: PushService,
+  ) {}
 
   async request(userId: string, dto: CreateEmergencyDto) {
     const nearest = await this.findNearestHospital(dto.latitude, dto.longitude);
@@ -22,11 +26,45 @@ export class EmergencyService {
       },
     });
 
-    // In production: push to dispatch service + SMS on-call staff.
-    // MVP: log. Patient is instructed client-side to also dial 911 directly.
     this.logger.warn(
       `EMERGENCY user=${userId} lat=${dto.latitude} lng=${dto.longitude} hospital=${nearest?.nameEn ?? 'none'}`,
     );
+
+    // Patient gets a confirmation so they see the system responded.
+    void this.push.sendToUser(userId, {
+      title: 'Emergency sent',
+      body: nearest
+        ? `Nearest hospital: ${nearest.nameEn}. Please also call 911.`
+        : 'Location sent. Please also call 911.',
+      data: { type: 'emergency', emergencyId: request.id },
+    });
+
+    // Hospital admins at the nearest hospital get paged.
+    if (nearest) {
+      const admins = await this.prisma.user.findMany({
+        where: { role: 'HOSPITAL_ADMIN', hospitalId: nearest.id },
+        select: { id: true },
+      });
+      if (admins.length > 0) {
+        const patient = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { fullName: true, phoneNumber: true },
+        });
+        void this.push.sendToUsers(
+          admins.map((a) => a.id),
+          {
+            title: 'Emergency request',
+            body: `${patient?.fullName ?? 'Patient'} • ${patient?.phoneNumber ?? 'no phone'} • ${dto.latitude.toFixed(4)}, ${dto.longitude.toFixed(4)}`,
+            data: {
+              type: 'emergency',
+              emergencyId: request.id,
+              latitude: dto.latitude,
+              longitude: dto.longitude,
+            },
+          },
+        );
+      }
+    }
 
     return {
       id: request.id,

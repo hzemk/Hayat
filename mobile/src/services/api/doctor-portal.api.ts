@@ -1,4 +1,5 @@
 import { api } from './client';
+import type { Reminder, ReminderType } from './reminders.api';
 
 export interface DoctorMe {
   id: string;
@@ -177,5 +178,56 @@ export async function sendDoctorMessageToPatient(
     `/doctor/threads/${patientId}/messages`,
     body,
   );
+  return data;
+}
+
+export interface CreatePatientReminderPayload {
+  type: ReminderType;
+  title: string;
+  subtitle?: string;
+  scheduledAt: string;
+  recurrence?: string;
+  durationDays?: number;
+}
+
+export async function listPatientReminders(patientId: string) {
+  const { data } = await api.get<Reminder[]>(
+    `/doctor/patients/${patientId}/reminders`,
+  );
+  return data;
+}
+
+export async function createPatientReminder(
+  patientId: string,
+  payload: CreatePatientReminderPayload,
+) {
+  const { data } = await api.post<Reminder>(
+    `/doctor/patients/${patientId}/reminders`,
+    payload,
+  );
+  return data;
+}
+
+export async function deletePatientReminder(
+  patientId: string,
+  reminderId: string,
+) {
+  await api.delete(`/doctor/patients/${patientId}/reminders/${reminderId}`);
+}
+
+export interface ScheduleDay {
+  dayOfWeek: number;
+  startMinutes: number;
+  endMinutes: number;
+  isActive: boolean;
+}
+
+export async function getMySchedule() {
+  const { data } = await api.get<ScheduleDay[]>('/doctor/me/schedule');
+  return data;
+}
+
+export async function setMySchedule(days: ScheduleDay[]) {
+  const { data } = await api.put<ScheduleDay[]>('/doctor/me/schedule', { days });
   return data;
 }

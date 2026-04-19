@@ -1,7 +1,9 @@
 import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { Reminder } from '@services/api/reminders.api';
+import { updateMyPushToken } from '@services/api/users.api';
 
 // Local-only medication reminders. No push server yet — we schedule on the
 // device when the reminder list refreshes.
@@ -133,6 +135,39 @@ export async function syncReminderNotifications(
   }
 
   await saveMap(map);
+}
+
+// Expo Go on SDK 53+ removed remote-push support. A dev build (expo-dev-client)
+// is required to actually receive pushes — token registration silently no-ops
+// on Expo Go so we don't spam the server with unusable tokens.
+export async function registerExpoPushToken(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  if (Constants.appOwnership === 'expo') return;
+  try {
+    const granted = await ensureNotificationPermissions();
+    if (!granted) return;
+    await setupMedicationChannel();
+    const projectId =
+      (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)
+        ?.eas?.projectId ??
+      (Constants.easConfig as { projectId?: string } | undefined)?.projectId;
+    const tokenResponse = await Notifications.getExpoPushTokenAsync(
+      projectId ? { projectId } : undefined,
+    );
+    if (tokenResponse.data) {
+      await updateMyPushToken(tokenResponse.data);
+    }
+  } catch {
+    // Non-fatal: user just won't receive pushes until next launch.
+  }
+}
+
+export async function clearExpoPushToken(): Promise<void> {
+  try {
+    await updateMyPushToken(null);
+  } catch {
+    // server may be unreachable on logout — fine, token expires eventually.
+  }
 }
 
 export async function cancelAllReminderNotifications(): Promise<void> {

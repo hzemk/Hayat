@@ -8,15 +8,21 @@ import {
   DoctorMessageSender,
   Prisma,
   PrescriptionStatus,
+  ReminderSource,
 } from '@prisma/client';
 import { PrismaService } from '@prisma-db/prisma.service';
+import { PushService } from '@modules/push/push.service';
 import { DoctorSendMessageDto } from './dto/doctor-send-message.dto';
 import { IssuePrescriptionDto } from './dto/issue-prescription.dto';
+import { CreateDoctorReminderDto } from './dto/create-doctor-reminder.dto';
 import { buildPrescriptionReminders } from './rx-reminders';
 
 @Injectable()
 export class DoctorPortalService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly push: PushService,
+  ) {}
 
   async getMyDoctorProfile(userId: string) {
     const doctor = await this.prisma.doctor.findUnique({
@@ -49,6 +55,66 @@ export class DoctorPortalService {
       data: { isAvailable },
     });
     return this.getMyDoctorProfile(userId);
+  }
+
+  async getMySchedule(userId: string) {
+    const doctor = await this.resolveDoctor(userId);
+    return this.prisma.doctorAvailability.findMany({
+      where: { doctorId: doctor.id },
+      orderBy: { dayOfWeek: 'asc' },
+    });
+  }
+
+  async setMySchedule(
+    userId: string,
+    days: Array<{
+      dayOfWeek: number;
+      startMinutes: number;
+      endMinutes: number;
+      isActive: boolean;
+    }>,
+  ) {
+    const doctor = await this.resolveDoctor(userId);
+    for (const d of days) {
+      if (d.endMinutes <= d.startMinutes) {
+        throw new ForbiddenException(
+          `Day ${d.dayOfWeek}: endMinutes must be after startMinutes`,
+        );
+      }
+    }
+    // Seen days get upserted; unseen days are deleted (so the doctor can clear a day).
+    const seenDays = new Set(days.map((d) => d.dayOfWeek));
+    await this.prisma.$transaction([
+      this.prisma.doctorAvailability.deleteMany({
+        where: {
+          doctorId: doctor.id,
+          dayOfWeek: { notIn: Array.from(seenDays) },
+        },
+      }),
+      ...days.map((d) =>
+        this.prisma.doctorAvailability.upsert({
+          where: {
+            doctorId_dayOfWeek: {
+              doctorId: doctor.id,
+              dayOfWeek: d.dayOfWeek,
+            },
+          },
+          create: {
+            doctorId: doctor.id,
+            dayOfWeek: d.dayOfWeek,
+            startMinutes: d.startMinutes,
+            endMinutes: d.endMinutes,
+            isActive: d.isActive,
+          },
+          update: {
+            startMinutes: d.startMinutes,
+            endMinutes: d.endMinutes,
+            isActive: d.isActive,
+          },
+        }),
+      ),
+    ]);
+    return this.getMySchedule(userId);
   }
 
   async listPatients(userId: string) {
@@ -194,6 +260,15 @@ export class DoctorPortalService {
       where: { id: thread.id },
       data: { lastMessageAt: new Date() },
     });
+
+    void this.push
+      .sendToUser(patientId, {
+        title: 'Doctor',
+        body: dto.body.length > 140 ? dto.body.slice(0, 139) + '…' : dto.body,
+        data: { type: 'doctor-thread', doctorId: doctor.id },
+      })
+      .catch(() => undefined);
+
     return message;
   }
 
@@ -248,6 +323,16 @@ export class DoctorPortalService {
       data: { lastMessageAt: new Date() },
     });
 
+    void this.push
+      .sendToUser(dto.patientId, {
+        title: 'Prescription issued',
+        body: `${prescription.items.length} medication${
+          prescription.items.length === 1 ? '' : 's'
+        } added to your record`,
+        data: { type: 'prescription', prescriptionId: prescription.id },
+      })
+      .catch(() => undefined);
+
     // Auto-generate medication reminders for the patient across the duration
     // of each item, based on its frequency. Best-effort — failures are logged
     // but don't block the prescription itself.
@@ -274,6 +359,93 @@ export class DoctorPortalService {
         patient: { select: { id: true, fullName: true } },
       },
     });
+  }
+
+  async listPatientReminders(userId: string, patientId: string) {
+    const doctor = await this.resolveDoctor(userId);
+    await this.assertPatientOfDoctor(doctor.id, patientId);
+    return this.prisma.reminder.findMany({
+      where: { userId: patientId },
+      orderBy: [{ status: 'asc' }, { scheduledAt: 'asc' }],
+    });
+  }
+
+  async createPatientReminder(
+    userId: string,
+    patientId: string,
+    dto: CreateDoctorReminderDto,
+  ) {
+    const doctor = await this.resolveDoctor(userId);
+    await this.assertPatientOfDoctor(doctor.id, patientId);
+    const scheduledAt = new Date(dto.scheduledAt);
+    const endsAt =
+      dto.durationDays && dto.durationDays > 0
+        ? new Date(
+            scheduledAt.getTime() + dto.durationDays * 24 * 60 * 60 * 1000,
+          )
+        : null;
+    const reminder = await this.prisma.reminder.create({
+      data: {
+        userId: patientId,
+        type: dto.type,
+        title: dto.title,
+        subtitle: dto.subtitle,
+        scheduledAt,
+        endsAt,
+        recurrence: dto.recurrence,
+        source: ReminderSource.DOCTOR,
+      },
+    });
+
+    // Post a chat message so the reminder is visible in the thread too.
+    const thread = await this.resolveThread(doctor.id, patientId);
+    const bodyLines = [`⏰ ${reminder.title}`];
+    if (reminder.subtitle) bodyLines.push(reminder.subtitle);
+    bodyLines.push(reminder.scheduledAt.toISOString());
+    if (reminder.endsAt) {
+      bodyLines.push(`→ ${reminder.endsAt.toISOString()}`);
+    }
+    await this.prisma.doctorMessage.create({
+      data: {
+        threadId: thread.id,
+        sender: DoctorMessageSender.DOCTOR,
+        kind: DoctorMessageKind.TEXT,
+        body: bodyLines.join('\n'),
+        metadata: {
+          reminderId: reminder.id,
+          type: reminder.type,
+          scheduledAt: reminder.scheduledAt.toISOString(),
+          endsAt: reminder.endsAt?.toISOString() ?? null,
+        } as Prisma.InputJsonValue,
+      },
+    });
+    await this.prisma.doctorThread.update({
+      where: { id: thread.id },
+      data: { lastMessageAt: new Date() },
+    });
+
+    return reminder;
+  }
+
+  async deletePatientReminder(
+    userId: string,
+    patientId: string,
+    reminderId: string,
+  ) {
+    const doctor = await this.resolveDoctor(userId);
+    await this.assertPatientOfDoctor(doctor.id, patientId);
+    const reminder = await this.prisma.reminder.findUnique({
+      where: { id: reminderId },
+    });
+    if (!reminder || reminder.userId !== patientId) {
+      throw new NotFoundException('Reminder not found');
+    }
+    if (reminder.source === ReminderSource.PRESCRIPTION) {
+      throw new ForbiddenException(
+        'Prescription-linked reminders are regenerated automatically.',
+      );
+    }
+    await this.prisma.reminder.delete({ where: { id: reminderId } });
   }
 
   private async resolveDoctor(userId: string) {
