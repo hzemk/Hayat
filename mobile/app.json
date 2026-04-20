@@ -63,7 +63,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiBaseUrl": "https://hayat-backend.onrender.com/api/v1",
+      "apiBaseUrl": "https://hayat-backend-ark8.onrender.com/api/v1",
       "router": {},
       "eas": {
         "projectId": "87ddfd79-9139-4cf4-92b9-28af6952cfc4"
