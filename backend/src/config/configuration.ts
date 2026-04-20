@@ -2,7 +2,7 @@ export default () => ({
   app: {
     env: process.env.NODE_ENV ?? 'development',
     port: parseInt(process.env.PORT ?? '4000', 10),
-    apiPrefix: process.env.API_PREFIX ?? 'api/v1',
+    apiPrefix: process.env.API_PREFIX ?? 'api',
     origin: process.env.APP_ORIGIN ?? '*',
     logLevel: process.env.LOG_LEVEL ?? 'info',
   },

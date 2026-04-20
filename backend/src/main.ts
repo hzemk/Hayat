@@ -37,7 +37,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.setGlobalPrefix(config.get<string>('app.apiPrefix') ?? 'api/v1');
+  app.setGlobalPrefix(config.get<string>('app.apiPrefix') ?? 'api');
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
   app.useGlobalPipes(
