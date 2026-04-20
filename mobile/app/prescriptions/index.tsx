@@ -68,6 +68,14 @@ export default function PrescriptionsScreen() {
                   : rx.status === 'EXPIRED' || rx.status === 'CANCELLED'
                     ? colors.tint.red
                     : colors.tint.gray;
+            const sourceTone =
+              rx.source === 'DOCTOR' ? colors.tint.blue : colors.tint.gray;
+            const sourceIcon =
+              rx.source === 'DOCTOR' ? 'medkit-outline' : 'scan-outline';
+            const sourceLabel =
+              rx.source === 'DOCTOR'
+                ? t('prescriptions.sourceDoctor') || 'From doctor'
+                : t('prescriptions.sourceScanned') || 'Scanned';
             return (
               <Card key={rx.id}>
                 <View style={styles.rxHeader}>
@@ -83,6 +91,14 @@ export default function PrescriptionsScreen() {
                       {rx.status}
                     </Text>
                   </View>
+                </View>
+                <View
+                  style={[styles.sourceBadge, { backgroundColor: sourceTone.bg }]}
+                >
+                  <Ionicons name={sourceIcon} size={12} color={sourceTone.fg} />
+                  <Text style={[styles.sourceText, { color: sourceTone.fg }]}>
+                    {sourceLabel}
+                  </Text>
                 </View>
                 {rx.notes ? (
                   <Text style={styles.notes}>{rx.notes}</Text>
@@ -106,7 +122,7 @@ export default function PrescriptionsScreen() {
                     </View>
                   ))}
                 </View>
-                {rx.doctorUser?.fullName ? (
+                {rx.source === 'DOCTOR' && rx.doctorUser?.fullName ? (
                   <Text style={styles.doctor}>
                     Dr. {rx.doctorUser.fullName}
                   </Text>
@@ -153,6 +169,20 @@ function useStyles(colors: AppColors) {
     fontSize: 10,
     fontWeight: typography.weight.bold,
     letterSpacing: 0.5,
+  },
+  sourceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    paddingVertical: 3,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    marginBottom: spacing.sm,
+  },
+  sourceText: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
   },
   notes: {
     fontSize: typography.size.xs,

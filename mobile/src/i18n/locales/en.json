@@ -55,7 +55,8 @@
     "backToRoles": "Choose a different role",
     "signInAsDoctor": "Sign in to doctor portal",
     "signInAsHospital": "Sign in to hospital portal",
-    "signInAsPatient": "Continue with Sanad"
+    "signInAsPatient": "Continue with Sanad",
+    "invalidCredentials": "Incorrect email or password"
   },
   "home": {
     "cards": "Cards",

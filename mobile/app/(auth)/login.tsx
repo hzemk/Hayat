@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import axios from 'axios';
 import {
   Alert,
   Image,
@@ -48,10 +49,12 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [sanadLoading, setSanadLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   function resetForm() {
     setEmail('');
     setPassword('');
+    setFormError(null);
   }
 
   function backToRoles() {
@@ -60,14 +63,14 @@ export default function LoginScreen() {
   }
 
   async function onEmailLogin(expectedPrefix: 'dr.' | 'hosp.') {
+    setFormError(null);
     const trimmed = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      Alert.alert(t('common.error'), t('auth.invalidEmail'));
+      setFormError(t('auth.invalidEmail'));
       return;
     }
     if (!trimmed.startsWith(expectedPrefix)) {
-      Alert.alert(
-        t('common.error'),
+      setFormError(
         expectedPrefix === 'dr.'
           ? t('auth.doctorEmailInvalid')
           : t('auth.hospitalEmailInvalid'),
@@ -75,7 +78,7 @@ export default function LoginScreen() {
       return;
     }
     if (password.length < 1) {
-      Alert.alert(t('common.error'), t('auth.passwordTooShort'));
+      setFormError(t('auth.passwordTooShort'));
       return;
     }
     setLoading(true);
@@ -87,13 +90,20 @@ export default function LoginScreen() {
         refreshToken: res.refreshToken,
       });
     } catch (err) {
-      Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
+      const status =
+        axios.isAxiosError(err) ? err.response?.status : undefined;
+      const msg =
+        status === 401 || status === 403
+          ? t('auth.invalidCredentials')
+          : apiErrorMessage(err, t('auth.invalidCredentials'));
+      setFormError(msg);
     } finally {
       setLoading(false);
     }
   }
 
   async function onSanadLogin() {
+    setFormError(null);
     setSanadLoading(true);
     try {
       const code = buildMockSanadCode({
@@ -116,6 +126,19 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <Pressable
+        onPress={toggle}
+        hitSlop={10}
+        style={styles.themeToggle}
+        accessibilityRole="button"
+        accessibilityLabel={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      >
+        <Ionicons
+          name={isDark ? 'sunny' : 'moon'}
+          size={16}
+          color={colors.text.primary}
+        />
+      </Pressable>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -125,20 +148,6 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Pressable
-            onPress={toggle}
-            hitSlop={10}
-            style={styles.themeToggle}
-            accessibilityRole="button"
-            accessibilityLabel={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            <Ionicons
-              name={isDark ? 'sunny' : 'moon'}
-              size={16}
-              color={colors.text.primary}
-            />
-          </Pressable>
-
           <View style={styles.brandBlock}>
             <HayatLogo
               size={120}
@@ -167,8 +176,15 @@ export default function LoginScreen() {
               email={email}
               password={password}
               loading={loading}
-              onEmail={setEmail}
-              onPassword={setPassword}
+              error={formError}
+              onEmail={(v) => {
+                setFormError(null);
+                setEmail(v);
+              }}
+              onPassword={(v) => {
+                setFormError(null);
+                setPassword(v);
+              }}
               onSubmit={() =>
                 onEmailLogin(role === 'DOCTOR' ? 'dr.' : 'hosp.')
               }
@@ -345,6 +361,7 @@ function EmailCard({
   email,
   password,
   loading,
+  error,
   onEmail,
   onPassword,
   onSubmit,
@@ -356,6 +373,7 @@ function EmailCard({
   email: string;
   password: string;
   loading: boolean;
+  error: string | null;
   onEmail: (v: string) => void;
   onPassword: (v: string) => void;
   onSubmit: () => void;
@@ -418,6 +436,17 @@ function EmailCard({
         />
       </View>
 
+      {error ? (
+        <View style={styles.errorBanner}>
+          <Ionicons
+            name="alert-circle"
+            size={16}
+            color={colors.tint.red.fg}
+          />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
+
       <GradientButton label={submitLabel} onPress={onSubmit} loading={loading} />
     </View>
   );
@@ -472,7 +501,24 @@ function useStyles(colors: AppColors) {
           borderColor: colors.surface.border,
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 10,
+          zIndex: 50,
+          elevation: 4,
+        },
+        errorBanner: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          backgroundColor: colors.tint.red.bg,
+          borderRadius: radius.md,
+          paddingVertical: spacing.sm,
+          paddingHorizontal: spacing.md,
+          marginTop: spacing.xs,
+        },
+        errorText: {
+          flex: 1,
+          color: colors.tint.red.fg,
+          fontSize: typography.size.sm,
+          fontWeight: typography.weight.medium,
         },
         brand: {
           fontSize: typography.size.xxl,

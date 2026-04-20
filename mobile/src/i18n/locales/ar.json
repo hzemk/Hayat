@@ -55,7 +55,8 @@
     "backToRoles": "اختيار دور آخر",
     "signInAsDoctor": "دخول بوابة الأطباء",
     "signInAsHospital": "دخول بوابة المستشفى",
-    "signInAsPatient": "متابعة عبر سند"
+    "signInAsPatient": "متابعة عبر سند",
+    "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة"
   },
   "home": {
     "cards": "البطاقات",

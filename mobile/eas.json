@@ -18,10 +18,23 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "android": {
+        "buildType": "apk"
+      },
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://hayat-backend.onrender.com/api/v1",
+        "EXPO_PUBLIC_DEFAULT_LOCALE": "ar"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "REPLACE-WITH-YOUR-APPLE-ID-EMAIL",
+        "ascAppId": "REPLACE-WITH-APP-STORE-CONNECT-NUMERIC-APP-ID",
+        "appleTeamId": "REPLACE-WITH-APPLE-TEAM-ID"
+      }
+    }
   }
 }

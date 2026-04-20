@@ -10,6 +10,8 @@ export interface PrescriptionItem {
   instructionsEn: string | null;
 }
 
+export type PrescriptionSource = 'DOCTOR' | 'SCAN';
+
 export interface Prescription {
   id: string;
   issuedAt: string;
@@ -17,6 +19,7 @@ export interface Prescription {
   status: 'ACTIVE' | 'DISPENSED' | 'CANCELLED' | 'EXPIRED';
   notes: string | null;
   items: PrescriptionItem[];
+  source: PrescriptionSource;
   doctorUser: { fullName: string | null };
 }
 
