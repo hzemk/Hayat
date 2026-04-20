@@ -5,35 +5,47 @@
     "scheme": "hayat",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B2545"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hayat.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Hayat uses your location to find nearby hospitals and to send it during emergencies.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Hayat uses your location to find nearby hospitals and to send it during emergencies.",
-        "CFBundleLocalizations": ["ar", "en"],
+        "CFBundleLocalizations": [
+          "ar",
+          "en"
+        ],
         "CFBundleDevelopmentRegion": "ar",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.hayat.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B2545"
+      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "INTERNET"
+        "INTERNET",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
-    },
-    "locales": {
-      "ar": "./src/i18n/locales/ar.json",
-      "en": "./src/i18n/locales/en.json"
+      "output": "single",
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
       "expo-router",
@@ -47,9 +59,15 @@
         }
       ]
     ],
-    "experiments": { "typedRoutes": true },
+    "experiments": {
+      "typedRoutes": true
+    },
     "extra": {
-      "apiBaseUrl": "http://localhost:4000/api/v1"
+      "apiBaseUrl": "https://hayat-backend.onrender.com/api/v1",
+      "router": {},
+      "eas": {
+        "projectId": "87ddfd79-9139-4cf4-92b9-28af6952cfc4"
+      }
     }
   }
 }

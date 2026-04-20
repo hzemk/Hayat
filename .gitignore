@@ -4,3 +4,9 @@
 
 # Reference screenshots kept locally only
 insu.jpg
+
+# Local Claude Code settings
+.claude/
+
+# Raw logo source (generated PNGs are committed instead)
+mobile/assets/WhatsApp Image*

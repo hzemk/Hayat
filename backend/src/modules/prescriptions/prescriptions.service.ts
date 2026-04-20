@@ -78,8 +78,8 @@ export class PrescriptionsService {
     return null;
   }
 
-  listMine(userId: string) {
-    return this.prisma.prescription.findMany({
+  async listMine(userId: string) {
+    const rows = await this.prisma.prescription.findMany({
       where: { patientId: userId },
       orderBy: { issuedAt: 'desc' },
       include: {
@@ -87,6 +87,7 @@ export class PrescriptionsService {
         doctorUser: { select: { fullName: true } },
       },
     });
+    return rows.map((rx) => withSource(rx));
   }
 
   async getById(userId: string, id: string) {
@@ -99,11 +100,11 @@ export class PrescriptionsService {
     });
     if (!rx) throw new NotFoundException('Prescription not found');
     if (rx.patientId !== userId) throw new ForbiddenException();
-    return rx;
+    return withSource(rx);
   }
 
   async create(userId: string, dto: CreatePrescriptionDto) {
-    return this.prisma.prescription.create({
+    const rx = await this.prisma.prescription.create({
       data: {
         patientId: userId,
         doctorUserId: userId,
@@ -124,6 +125,7 @@ export class PrescriptionsService {
         doctorUser: { select: { fullName: true } },
       },
     });
+    return withSource(rx);
   }
 
   async scan(_userId: string, dto: ScanPrescriptionDto): Promise<ScanResult> {
@@ -239,6 +241,16 @@ export class PrescriptionsService {
     };
     return json.choices?.[0]?.message?.content?.trim() ?? '';
   }
+}
+
+type PrescriptionSource = 'DOCTOR' | 'SCAN';
+
+function withSource<T extends { doctorId: string | null; patientId: string; doctorUserId: string }>(
+  rx: T,
+): T & { source: PrescriptionSource } {
+  const source: PrescriptionSource =
+    rx.doctorId && rx.doctorUserId !== rx.patientId ? 'DOCTOR' : 'SCAN';
+  return { ...rx, source };
 }
 
 function normalizeScanResult(parsed: any): ScanResult {
