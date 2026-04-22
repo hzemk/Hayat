@@ -51,7 +51,17 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   async hydrate() {
-    // Dev: force login every launch — skip backend, clear any stale session.
+    const [access, refresh, user] = await Promise.all([
+      tokenStorage.getAccess(),
+      tokenStorage.getRefresh(),
+      userStorage.load<User>(),
+    ]);
+    if (access && refresh && user) {
+      set({ isHydrated: true, user });
+      void registerExpoPushToken();
+      return;
+    }
+    // Missing any piece of a session: clear and present login.
     await tokenStorage.clear().catch(() => undefined);
     set({ isHydrated: true, user: null });
   },

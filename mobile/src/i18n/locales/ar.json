@@ -59,7 +59,7 @@
     "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة"
   },
   "home": {
-    "cards": "البطاقات",
+    "cards": "التأمين الصحي",
     "seeAll": "عرض الكل",
     "noInsuranceTitle": "اربط تأمينك الصحي",
     "noInsuranceHint": "استورد من سند أو أضفه يدوياً",
@@ -81,7 +81,13 @@
     "nextAppointment": "الموعد القادم",
     "family": "العائلة",
     "myDoctor": "طبيبي",
-    "messages": "الرسائل"
+    "messages": "الرسائل",
+    "inMinutes": "بعد {{count}} د",
+    "minutesAgo": "قبل {{count}} د",
+    "inHours": "بعد {{count}} س",
+    "hoursAgo": "قبل {{count}} س",
+    "inDays": "بعد {{count}} يوم",
+    "daysAgo": "قبل {{count}} يوم"
   },
   "messages": {
     "title": "الرسائل",
@@ -202,7 +208,10 @@
     "private": "خاص",
     "departments": "الأقسام",
     "book": "احجز الآن",
-    "call": "اتصل"
+    "call": "اتصل",
+    "noResults": "لا توجد مستشفيات تطابق بحثك.",
+    "loadFailed": "تعذّر تحميل المستشفيات. تحقّق من اتصالك وأعد المحاولة.",
+    "retry": "إعادة المحاولة"
   },
   "profile": {
     "title": "الملف الشخصي",
@@ -324,7 +333,9 @@
     "anyDoctorHint": "سنحجز لك مع أول طبيب متاح",
     "doctorAvailable": "متاح",
     "doctorUnavailable": "خارج الدوام",
-    "backToTime": "العودة للوقت"
+    "backToTime": "العودة للوقت",
+    "locationDeniedTitle": "نستخدم عمّان كموقعك",
+    "locationDeniedBody": "لم نستطع استخدام موقعك، لذا يتم ترتيب المستشفيات من وسط عمّان. ما زال بإمكانك الحجز في أي مكان."
   },
   "emergency": {
     "title": "طوارئ",
@@ -694,6 +705,7 @@
       "overview": "نظرة عامة",
       "doctors": "الأطباء",
       "departments": "الأقسام",
+      "roster": "الكادر",
       "profile": "الملف"
     },
     "overview": {
@@ -721,6 +733,7 @@
       "unread_other": "{{count}} غير مقروءة",
       "noDepartment": "بدون قسم",
       "empty": "لا يوجد أطباء مرتبطون بهذا المستشفى بعد",
+      "noMatches": "لا يوجد أطباء يطابقون بحثك.",
       "viewTeam": "عرض كامل الفريق",
       "add": {
         "cta": "إضافة طبيب",
@@ -800,6 +813,59 @@
       "addressEn": "العنوان (EN)",
       "governmentBadge": "حكومي",
       "logout": "تسجيل الخروج"
+    },
+    "roster": {
+      "title": "الكادر",
+      "subtitle": "الأقسام والأطباء والمرضى الذين يتابعونهم",
+      "searchDepartments": "ابحث عن قسم…",
+      "searchPeople": "ابحث عن طبيب أو مريض…",
+      "pickDepartment": "اختر قسماً لعرض الأطباء ومرضاهم",
+      "empty": "لا توجد أقسام بعد",
+      "noMatches": "لا نتائج مطابقة",
+      "patients_one": "{{count}} مريض",
+      "patients_other": "{{count}} مرضى",
+      "doctors_one": "{{count}} طبيب",
+      "doctors_other": "{{count}} أطباء",
+      "noPatients": "لا يوجد مرضى حالياً",
+      "recent": "حديثاً",
+      "sort": "ترتيب",
+      "sortBy": {
+        "name": "حسب الاسم",
+        "patients": "الأكثر مرضى",
+        "recent": "الأحدث نشاطاً",
+        "status": "المتصلون أولاً"
+      },
+      "expand": "عرض المرضى",
+      "collapse": "إخفاء المرضى",
+      "unread": "{{count}} غير مقروءة",
+      "messagedAgo": "نشِط {{when}}",
+      "never": "لا رسائل بعد",
+      "care": {
+        "title": "تفاصيل الرعاية",
+        "subtitle": "الحالات والوصفات الطبية مع هذا الطبيب",
+        "conditions": "الحالات / المشاكل",
+        "noConditions": "لا توجد حالات موثّقة",
+        "allergies": "الحساسيّات",
+        "noAllergies": "لا توجد حساسيات معروفة",
+        "medications": "الأدوية الحالية",
+        "noMedications": "لا توجد أدوية حالية",
+        "symptoms": "الأعراض الأخيرة",
+        "noSymptoms": "لا يوجد تقرير أعراض بعد",
+        "prescriptions": "الوصفات الطبية من هذا الطبيب",
+        "noPrescriptions": "لم يُصدر هذا الطبيب أي وصفة بعد",
+        "issued": "صدرت {{when}}",
+        "active": "سارية",
+        "expired": "منتهية",
+        "cancelled": "ملغاة",
+        "close": "إغلاق",
+        "items_one": "{{count}} دواء",
+        "items_other": "{{count}} أدوية",
+        "dose": "الجرعة",
+        "frequency": "التكرار",
+        "duration": "المدة",
+        "days_one": "{{count}} يوم",
+        "days_other": "{{count}} أيام"
+      }
     }
   }
 }

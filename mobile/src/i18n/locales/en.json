@@ -59,7 +59,7 @@
     "invalidCredentials": "Incorrect email or password"
   },
   "home": {
-    "cards": "Cards",
+    "cards": "Health Insurance",
     "seeAll": "See all",
     "noInsuranceTitle": "Link your insurance",
     "noInsuranceHint": "Import from Sanad or add it manually",
@@ -81,7 +81,13 @@
     "nextAppointment": "Next appointment",
     "family": "Family",
     "myDoctor": "My doctor",
-    "messages": "Messages"
+    "messages": "Messages",
+    "inMinutes": "in {{count}}m",
+    "minutesAgo": "{{count}}m ago",
+    "inHours": "in {{count}}h",
+    "hoursAgo": "{{count}}h ago",
+    "inDays": "in {{count}}d",
+    "daysAgo": "{{count}}d ago"
   },
   "messages": {
     "title": "Messages",
@@ -202,7 +208,10 @@
     "private": "Private",
     "departments": "Departments",
     "book": "Book now",
-    "call": "Call"
+    "call": "Call",
+    "noResults": "No hospitals match your search.",
+    "loadFailed": "Couldn't load hospitals. Check your connection and try again.",
+    "retry": "Try again"
   },
   "profile": {
     "title": "Profile",
@@ -324,7 +333,9 @@
     "anyDoctorHint": "We'll assign the next available doctor",
     "doctorAvailable": "Available",
     "doctorUnavailable": "Off duty",
-    "backToTime": "Back to time"
+    "backToTime": "Back to time",
+    "locationDeniedTitle": "Using Amman as your location",
+    "locationDeniedBody": "We couldn't use your GPS, so hospitals are sorted from central Amman. You can still book anywhere."
   },
   "emergency": {
     "title": "Emergency",
@@ -694,6 +705,7 @@
       "overview": "Overview",
       "doctors": "Doctors",
       "departments": "Departments",
+      "roster": "Roster",
       "profile": "Profile"
     },
     "overview": {
@@ -721,6 +733,7 @@
       "unread_other": "{{count}} unread",
       "noDepartment": "No department",
       "empty": "No doctors linked to this hospital yet",
+      "noMatches": "No doctors match your search.",
       "viewTeam": "View full team",
       "add": {
         "cta": "Add doctor",
@@ -800,6 +813,59 @@
       "addressEn": "Address (EN)",
       "governmentBadge": "Government",
       "logout": "Log out"
+    },
+    "roster": {
+      "title": "Roster",
+      "subtitle": "Departments, doctors, and the patients they care for",
+      "searchDepartments": "Search departments…",
+      "searchPeople": "Search doctors or patients…",
+      "pickDepartment": "Tap a department to see its doctors and patients",
+      "empty": "No departments yet",
+      "noMatches": "No matches for your search",
+      "patients_one": "{{count}} patient",
+      "patients_other": "{{count}} patients",
+      "doctors_one": "{{count}} doctor",
+      "doctors_other": "{{count}} doctors",
+      "noPatients": "No patients in care yet",
+      "recent": "Recent",
+      "sort": "Sort",
+      "sortBy": {
+        "name": "Name",
+        "patients": "Most patients",
+        "recent": "Recent activity",
+        "status": "Online first"
+      },
+      "expand": "Show patients",
+      "collapse": "Hide patients",
+      "unread": "{{count}} unread",
+      "messagedAgo": "Active {{when}}",
+      "never": "No messages yet",
+      "care": {
+        "title": "Care details",
+        "subtitle": "Conditions and prescriptions under this doctor",
+        "conditions": "Problems / conditions",
+        "noConditions": "No documented conditions",
+        "allergies": "Allergies",
+        "noAllergies": "No known allergies",
+        "medications": "Current medications",
+        "noMedications": "No current medications",
+        "symptoms": "Recent symptoms",
+        "noSymptoms": "No symptom report yet",
+        "prescriptions": "Prescriptions from this doctor",
+        "noPrescriptions": "This doctor has not issued a prescription yet",
+        "issued": "Issued {{when}}",
+        "active": "Active",
+        "expired": "Expired",
+        "cancelled": "Cancelled",
+        "close": "Close",
+        "items_one": "{{count}} medication",
+        "items_other": "{{count}} medications",
+        "dose": "Dose",
+        "frequency": "Frequency",
+        "duration": "Duration",
+        "days_one": "{{count}} day",
+        "days_other": "{{count}} days"
+      }
     }
   }
 }

@@ -1,6 +1,7 @@
 import { ReactNode, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { radius, shadow, spacing, typography, useTheme, type Tint } from '@theme/index';
 
 interface Props {
@@ -25,6 +26,8 @@ export function ListItem({
   danger,
 }: Props) {
   const { colors } = useTheme();
+  const { i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
   const palette = danger ? colors.tint.red : colors.tint[tint];
 
   const styles = useMemo(
@@ -82,7 +85,11 @@ export function ListItem({
       </View>
       {trailing}
       {chevron ? (
-        <Ionicons name="chevron-forward" size={18} color={colors.text.muted} />
+        <Ionicons
+          name={isRtl ? 'chevron-back' : 'chevron-forward'}
+          size={18}
+          color={colors.text.muted}
+        />
       ) : null}
     </View>
   );

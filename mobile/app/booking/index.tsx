@@ -117,17 +117,27 @@ export default function BookingScreen() {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Low,
-        });
-        setCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
-      } else {
-        setCoords({ lat: 31.95, lng: 35.93 });
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Low,
+          });
+          setCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+          return;
+        }
+      } catch {
+        // fall through to Amman default
       }
+      // Denied or GPS error: fall back to central Amman and tell the user once
+      // why the hospital distance sort isn't personalized.
+      setCoords({ lat: 31.95, lng: 35.93 });
+      Alert.alert(
+        t('booking.locationDeniedTitle'),
+        t('booking.locationDeniedBody'),
+      );
     })();
-  }, []);
+  }, [t]);
 
   const { data: hospitals = [], isLoading } = useQuery({
     queryKey: ['hospitals', coords],

@@ -77,13 +77,13 @@ export function InsuranceCardVisual({
       </View>
 
       <View style={styles.cardMiddle}>
-        <Text style={styles.cardLabel}>MEMBER NO.</Text>
+        <Text style={styles.cardLabel}>{t('insurance.memberNumber')}</Text>
         <Text style={styles.cardMember}>{card.memberNumber}</Text>
       </View>
 
       <View style={styles.cardBottom}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.cardLabel}>HOLDER</Text>
+          <Text style={styles.cardLabel}>{t('insurance.holderName')}</Text>
           <Text style={styles.cardName} numberOfLines={1}>
             {card.holderName}
           </Text>

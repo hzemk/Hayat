@@ -148,7 +148,7 @@ export default function HospitalDoctorsScreen() {
           ListEmptyComponent={
             <Text style={styles.empty}>
               {search
-                ? t('hospitalPortal.doctors.empty')
+                ? t('hospitalPortal.doctors.noMatches')
                 : t('hospitalPortal.doctors.empty')}
             </Text>
           }

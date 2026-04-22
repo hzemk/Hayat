@@ -36,7 +36,7 @@ export default function HospitalsScreen() {
   const { colors } = useTheme();
   const styles = useStyles(colors);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['hospitals'],
     queryFn: () => listHospitals(),
   });
@@ -125,10 +125,31 @@ export default function HospitalsScreen() {
               {t('common.loading')}
             </Text>
           </Card>
+        ) : isError ? (
+          <Card variant="outline" style={{ gap: spacing.sm }}>
+            <Text style={{ color: colors.status.error }}>
+              {t('hospitals.loadFailed')}
+            </Text>
+            <Pressable
+              onPress={() => refetch()}
+              disabled={isRefetching}
+              style={({ pressed }) => [
+                styles.retryBtn,
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Ionicons
+                name="refresh"
+                size={14}
+                color={colors.brand.primary}
+              />
+              <Text style={styles.retryText}>{t('hospitals.retry')}</Text>
+            </Pressable>
+          </Card>
         ) : filtered.length === 0 ? (
           <Card variant="outline">
             <Text style={{ color: colors.text.muted }}>
-              {t('common.error')}
+              {t('hospitals.noResults')}
             </Text>
           </Card>
         ) : (
@@ -313,6 +334,23 @@ function useStyles(colors: AppColors) {
     backgroundColor: colors.surface.raised,
   },
   actionSecondaryText: {
+    fontSize: typography.size.sm,
+    color: colors.brand.primary,
+    fontWeight: typography.weight.semibold,
+  },
+  retryBtn: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.brand.primary,
+    backgroundColor: colors.surface.base,
+  },
+  retryText: {
     fontSize: typography.size.sm,
     color: colors.brand.primary,
     fontWeight: typography.weight.semibold,

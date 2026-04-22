@@ -1,10 +1,14 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { HospitalsService } from './hospitals.service';
+import { Public } from '@common/decorators/public.decorator';
 
 @Controller('hospitals')
 export class HospitalsController {
   constructor(private readonly hospitals: HospitalsService) {}
 
+  // Public so the Render health check (/api/v1/hospitals) returns 2xx.
+  // Hospital listings are non-sensitive reference data.
+  @Public()
   @Get()
   list(
     @Query('lat') lat?: string,

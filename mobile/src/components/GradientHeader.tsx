@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { radius, spacing, typography, useTheme } from '@theme/index';
 
@@ -24,6 +25,8 @@ export function GradientHeader({
   size = 'md',
 }: Props) {
   const { colors } = useTheme();
+  const { i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
   const insets = useSafeAreaInsets();
   const topPad = insets.top + (size === 'lg' ? spacing.md : spacing.sm);
   const bottomPad = size === 'lg' ? spacing.xxxl : spacing.xxl + spacing.lg;
@@ -42,7 +45,11 @@ export function GradientHeader({
             hitSlop={12}
             style={styles.backBtn}
           >
-            <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+            <Ionicons
+              name={isRtl ? 'chevron-forward' : 'chevron-back'}
+              size={22}
+              color="#FFFFFF"
+            />
           </Pressable>
         ) : (
           <View style={{ width: 32 }} />

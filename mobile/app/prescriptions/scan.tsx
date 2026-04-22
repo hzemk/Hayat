@@ -99,13 +99,13 @@ export default function ScanPrescriptionScreen() {
     const result =
       source === 'camera'
         ? await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             quality: 0.7,
             base64: true,
             allowsEditing: true,
           })
         : await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             quality: 0.7,
             base64: true,
             allowsEditing: true,

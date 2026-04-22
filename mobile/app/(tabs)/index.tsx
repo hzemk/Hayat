@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -33,18 +34,27 @@ import {
   useTheme,
 } from '@theme/index';
 
-function formatRelative(iso: string): string {
+function formatRelative(
+  iso: string,
+  t: (k: string, opts?: { count: number }) => string,
+): string {
   const diff = new Date(iso).getTime() - Date.now();
   const minutes = Math.round(diff / 60000);
   if (Math.abs(minutes) < 60) {
-    return minutes >= 0 ? `in ${minutes}m` : `${-minutes}m ago`;
+    return minutes >= 0
+      ? t('home.inMinutes', { count: minutes })
+      : t('home.minutesAgo', { count: -minutes });
   }
   const hours = Math.round(minutes / 60);
   if (Math.abs(hours) < 24) {
-    return hours >= 0 ? `in ${hours}h` : `${-hours}h ago`;
+    return hours >= 0
+      ? t('home.inHours', { count: hours })
+      : t('home.hoursAgo', { count: -hours });
   }
   const days = Math.round(hours / 24);
-  return days >= 0 ? `in ${days}d` : `${-days}d ago`;
+  return days >= 0
+    ? t('home.inDays', { count: days })
+    : t('home.daysAgo', { count: -days });
 }
 
 export default function HomeScreen() {
@@ -186,7 +196,7 @@ export default function HomeScreen() {
 
       <View style={styles.body}>
         <SectionContainer
-          title={t('home.cards') || 'Cards'}
+          title={t('home.cards') || 'Health Insurance'}
           action={{
             label: t('home.seeAll') || 'See all',
             onPress: () => router.push('/insurance-card'),
@@ -202,27 +212,34 @@ export default function HomeScreen() {
             <Pressable
               onPress={() => router.push('/insurance-card')}
               style={({ pressed }) => [
-                styles.emptyCard,
-                pressed && { opacity: 0.9 },
+                styles.emptyCardWrap,
+                pressed && { opacity: 0.92 },
               ]}
             >
-              <View style={styles.emptyCardIcon}>
-                <Ionicons name="card" size={22} color={colors.brand.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.emptyCardTitle}>
-                  {t('home.noInsuranceTitle') || 'Link your insurance'}
-                </Text>
-                <Text style={styles.emptyCardSub}>
-                  {t('home.noInsuranceHint') ||
-                    'Import from Sanad or add it manually'}
-                </Text>
-              </View>
-              <Ionicons
-                name={isRtl ? 'chevron-back' : 'chevron-forward'}
-                size={18}
-                color={colors.text.muted}
-              />
+              <LinearGradient
+                colors={[colors.tint.teal.bg, colors.tint.blue.bg]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.emptyCard}
+              >
+                <View style={styles.emptyCardIcon}>
+                  <Ionicons name="card" size={22} color={colors.brand.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.emptyCardTitle}>
+                    {t('home.noInsuranceTitle') || 'Link your insurance'}
+                  </Text>
+                  <Text style={styles.emptyCardSub}>
+                    {t('home.noInsuranceHint') ||
+                      'Import from Sanad or add it manually'}
+                  </Text>
+                </View>
+                <Ionicons
+                  name={isRtl ? 'chevron-back' : 'chevron-forward'}
+                  size={18}
+                  color={colors.text.muted}
+                />
+              </LinearGradient>
             </Pressable>
           )}
         </SectionContainer>
@@ -283,7 +300,7 @@ export default function HomeScreen() {
               }
               trailing={
                 <Text style={styles.trailingTime}>
-                  {formatRelative(nextAppointment.scheduledAt)}
+                  {formatRelative(nextAppointment.scheduledAt, t)}
                 </Text>
               }
             />
@@ -356,20 +373,23 @@ function useStyles(colors: AppColors) {
     padding: spacing.md,
     ...shadow.raised,
   },
+  emptyCardWrap: {
+    borderRadius: radius.xl,
+    backgroundColor: colors.surface.base,
+    ...shadow.soft,
+  },
   emptyCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.surface.base,
     borderRadius: radius.xl,
     padding: spacing.md,
-    ...shadow.soft,
   },
   emptyCardIcon: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: colors.tint.teal.bg,
+    backgroundColor: colors.surface.base,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -380,7 +400,7 @@ function useStyles(colors: AppColors) {
   },
   emptyCardSub: {
     fontSize: typography.size.xs,
-    color: colors.text.muted,
+    color: colors.text.secondary,
     marginTop: 2,
   },
   sosIcon: {
