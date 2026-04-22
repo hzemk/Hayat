@@ -81,6 +81,23 @@ export class HospitalPortalController {
     return this.service.getDepartment(userId, departmentId);
   }
 
+  @Get('departments/:departmentId/roster')
+  getDepartmentRoster(
+    @CurrentUser('userId') userId: string,
+    @Param('departmentId') departmentId: string,
+  ) {
+    return this.service.getDepartmentRoster(userId, departmentId);
+  }
+
+  @Get('doctors/:doctorId/patients/:patientId/care')
+  getPatientCare(
+    @CurrentUser('userId') userId: string,
+    @Param('doctorId') doctorId: string,
+    @Param('patientId') patientId: string,
+  ) {
+    return this.service.getPatientCare(userId, doctorId, patientId);
+  }
+
   @Patch('departments/:departmentId')
   updateDepartment(
     @CurrentUser('userId') userId: string,

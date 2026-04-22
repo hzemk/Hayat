@@ -78,6 +78,19 @@ export default function HospitalLayout() {
         }}
       />
       <Tabs.Screen
+        name="roster"
+        options={{
+          title: t('hospitalPortal.tabs.roster'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'people-circle' : 'people-circle-outline'}
+              size={22}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: t('hospitalPortal.tabs.profile'),

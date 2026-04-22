@@ -192,3 +192,122 @@ export async function updateHospitalDepartment(
   );
   return data;
 }
+
+export interface RosterPatient {
+  id: string;
+  threadId: string;
+  fullName: string | null;
+  email: string;
+  phoneNumber: string | null;
+  gender: 'MALE' | 'FEMALE' | null;
+  dateOfBirth: string | null;
+  lastMessageAt: string | null;
+  unread: number;
+}
+
+export interface RosterDoctor {
+  id: string;
+  specialty: string;
+  specialtyAr: string | null;
+  isAvailable: boolean;
+  photoUrl: string | null;
+  user: { id: string; fullName: string | null; email: string };
+  patientCount: number;
+  patients: RosterPatient[];
+}
+
+export interface DepartmentRoster {
+  id: string;
+  code: string;
+  nameAr: string;
+  nameEn: string;
+  doctors: RosterDoctor[];
+}
+
+export async function getDepartmentRoster(
+  departmentId: string,
+): Promise<DepartmentRoster> {
+  const { data } = await api.get(
+    `/hospital-portal/departments/${departmentId}/roster`,
+  );
+  return data;
+}
+
+export interface PatientCareCondition {
+  id: string;
+  name: string;
+  status: string;
+  notes: string | null;
+  diagnosedAt: string | null;
+}
+
+export interface PatientCareAllergy {
+  id: string;
+  substance: string;
+  severity: string | null;
+  reaction: string | null;
+}
+
+export interface PatientCareMedication {
+  id: string;
+  name: string;
+  dose: string | null;
+  frequency: string | null;
+  notes: string | null;
+}
+
+export interface PatientCarePrescriptionItem {
+  id: string;
+  medicationName: string;
+  dose: string;
+  frequency: string;
+  durationDays: number | null;
+  instructionsAr: string | null;
+  instructionsEn: string | null;
+}
+
+export interface PatientCarePrescription {
+  id: string;
+  status: string;
+  notes: string | null;
+  issuedAt: string;
+  expiresAt: string | null;
+  items: PatientCarePrescriptionItem[];
+}
+
+export interface PatientCare {
+  doctor: {
+    id: string;
+    fullName: string | null;
+    specialty: string;
+    specialtyAr: string | null;
+  };
+  patient: {
+    id: string;
+    fullName: string | null;
+    email: string;
+    phoneNumber: string | null;
+    dateOfBirth: string | null;
+    gender: 'MALE' | 'FEMALE' | null;
+    bloodType: string | null;
+  };
+  conditions: PatientCareCondition[];
+  allergies: PatientCareAllergy[];
+  medications: PatientCareMedication[];
+  latestSymptom: {
+    body: string;
+    createdAt: string;
+    metadata: Record<string, unknown> | null;
+  } | null;
+  prescriptions: PatientCarePrescription[];
+}
+
+export async function getPatientCare(
+  doctorId: string,
+  patientId: string,
+): Promise<PatientCare> {
+  const { data } = await api.get(
+    `/hospital-portal/doctors/${doctorId}/patients/${patientId}/care`,
+  );
+  return data;
+}

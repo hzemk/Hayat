@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { GradientHeader } from '@components/GradientHeader';
 import { Card } from '@components/Card';
 import { LanguagePicker } from '@components/LanguagePicker';
+import { ThemePicker } from '@components/ThemePicker';
 import { getHospitalMe } from '@services/api/hospital-portal.api';
 import { useAuthStore } from '@stores/auth';
 import { AppColors, radius, spacing, typography, useTheme } from '@theme/index';
@@ -93,6 +94,8 @@ export default function HospitalProfileScreen() {
           </Card>
 
           <LanguagePicker />
+
+          <ThemePicker />
 
           <Pressable
             onPress={onLogout}

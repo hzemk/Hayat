@@ -16,6 +16,7 @@ import { SectionContainer } from '@components/SectionContainer';
 import { Card } from '@components/Card';
 import { ListItem } from '@components/ListItem';
 import { LanguagePicker } from '@components/LanguagePicker';
+import { ThemePicker } from '@components/ThemePicker';
 import { useAuthStore } from '@stores/auth';
 import {
   getDoctorMe,
@@ -180,6 +181,7 @@ export default function DoctorProfileScreen() {
 
         <SectionContainer title={t('profile.preferences')}>
           <LanguagePicker />
+          <ThemePicker />
           <ListItem
             icon="log-out"
             tint="red"

@@ -8,6 +8,7 @@ import {
 import {
   AppointmentStatus,
   AuthProvider,
+  DoctorMessageKind,
   DoctorMessageSender,
   InsuranceCardSource,
   Prisma,
@@ -240,6 +241,226 @@ export class HospitalPortalService {
         isAvailable: d.isAvailable,
         photoUrl: d.photoUrl,
         user: d.user,
+      })),
+    };
+  }
+
+  async getDepartmentRoster(userId: string, departmentId: string) {
+    const hospital = await this.resolveHospital(userId);
+    const dept = await this.prisma.department.findUnique({
+      where: { id: departmentId },
+      select: {
+        id: true,
+        code: true,
+        nameAr: true,
+        nameEn: true,
+        hospitalId: true,
+      },
+    });
+    if (!dept || dept.hospitalId !== hospital.id) {
+      throw new NotFoundException('Department not found');
+    }
+
+    const doctors = await this.prisma.doctor.findMany({
+      where: { departmentId },
+      orderBy: [{ isAvailable: 'desc' }, { createdAt: 'asc' }],
+      include: {
+        user: { select: { id: true, fullName: true, email: true } },
+        threads: {
+          orderBy: { lastMessageAt: 'desc' },
+          include: {
+            patient: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                phoneNumber: true,
+                gender: true,
+                dateOfBirth: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const threadIds = doctors.flatMap((d) => d.threads.map((t) => t.id));
+    const unreadByThread = threadIds.length
+      ? new Map(
+          (
+            await this.prisma.doctorMessage.groupBy({
+              by: ['threadId'],
+              where: {
+                threadId: { in: threadIds },
+                sender: DoctorMessageSender.PATIENT,
+                readAt: null,
+              },
+              _count: { _all: true },
+            })
+          ).map((r) => [r.threadId, r._count._all]),
+        )
+      : new Map<string, number>();
+
+    return {
+      id: dept.id,
+      code: dept.code,
+      nameAr: dept.nameAr,
+      nameEn: dept.nameEn,
+      doctors: doctors.map((d) => ({
+        id: d.id,
+        specialty: d.specialty,
+        specialtyAr: d.specialtyAr,
+        isAvailable: d.isAvailable,
+        photoUrl: d.photoUrl,
+        user: d.user,
+        patientCount: d.threads.length,
+        patients: d.threads.map((t) => ({
+          id: t.patient.id,
+          threadId: t.id,
+          fullName: t.patient.fullName,
+          email: t.patient.email,
+          phoneNumber: t.patient.phoneNumber,
+          gender: t.patient.gender,
+          dateOfBirth: t.patient.dateOfBirth,
+          lastMessageAt: t.lastMessageAt,
+          unread: unreadByThread.get(t.id) ?? 0,
+        })),
+      })),
+    };
+  }
+
+  async getPatientCare(
+    userId: string,
+    doctorId: string,
+    patientId: string,
+  ) {
+    const hospital = await this.resolveHospital(userId);
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { id: doctorId },
+      select: {
+        id: true,
+        userId: true,
+        hospitalId: true,
+        specialty: true,
+        specialtyAr: true,
+        user: { select: { id: true, fullName: true, email: true } },
+      },
+    });
+    if (!doctor || doctor.hospitalId !== hospital.id) {
+      throw new NotFoundException('Doctor not found in this hospital');
+    }
+    const thread = await this.prisma.doctorThread.findUnique({
+      where: {
+        patientId_doctorId: { patientId, doctorId },
+      },
+    });
+    if (!thread) {
+      throw new NotFoundException(
+        'This doctor does not currently treat this patient',
+      );
+    }
+
+    const patient = await this.prisma.user.findUnique({
+      where: { id: patientId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        dateOfBirth: true,
+        gender: true,
+        medicalRecord: {
+          include: {
+            conditions: { orderBy: { createdAt: 'desc' } },
+            allergies: { orderBy: { createdAt: 'desc' } },
+            medications: { orderBy: { createdAt: 'desc' } },
+          },
+        },
+      },
+    });
+    if (!patient) throw new NotFoundException('Patient not found');
+
+    const [latestSymptomMessage, prescriptions] = await Promise.all([
+      this.prisma.doctorMessage.findFirst({
+        where: {
+          threadId: thread.id,
+          kind: DoctorMessageKind.SYMPTOM_SUMMARY,
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { body: true, createdAt: true, metadata: true },
+      }),
+      this.prisma.prescription.findMany({
+        where: { patientId, doctorId },
+        orderBy: { issuedAt: 'desc' },
+        include: {
+          items: {
+            select: {
+              id: true,
+              medicationName: true,
+              dose: true,
+              frequency: true,
+              durationDays: true,
+              instructionsAr: true,
+              instructionsEn: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      doctor: {
+        id: doctor.id,
+        fullName: doctor.user.fullName,
+        specialty: doctor.specialty,
+        specialtyAr: doctor.specialtyAr,
+      },
+      patient: {
+        id: patient.id,
+        fullName: patient.fullName,
+        email: patient.email,
+        phoneNumber: patient.phoneNumber,
+        dateOfBirth: patient.dateOfBirth,
+        gender: patient.gender,
+        bloodType: patient.medicalRecord?.bloodType ?? null,
+      },
+      conditions:
+        patient.medicalRecord?.conditions.map((c) => ({
+          id: c.id,
+          name: c.name,
+          status: c.status,
+          notes: c.notes,
+          diagnosedAt: c.diagnosedAt,
+        })) ?? [],
+      allergies:
+        patient.medicalRecord?.allergies.map((a) => ({
+          id: a.id,
+          substance: a.substance,
+          severity: a.severity,
+          reaction: a.reaction,
+        })) ?? [],
+      medications:
+        patient.medicalRecord?.medications.map((m) => ({
+          id: m.id,
+          name: m.name,
+          dose: m.dose,
+          frequency: m.frequency,
+          notes: m.notes,
+        })) ?? [],
+      latestSymptom: latestSymptomMessage
+        ? {
+            body: latestSymptomMessage.body,
+            createdAt: latestSymptomMessage.createdAt,
+            metadata: latestSymptomMessage.metadata,
+          }
+        : null,
+      prescriptions: prescriptions.map((rx) => ({
+        id: rx.id,
+        status: rx.status,
+        notes: rx.notes,
+        issuedAt: rx.issuedAt,
+        expiresAt: rx.expiresAt,
+        items: rx.items,
       })),
     };
   }
