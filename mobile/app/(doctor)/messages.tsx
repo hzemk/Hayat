@@ -242,7 +242,7 @@ function useStyles(colors: AppColors) {
     ...shadow.soft,
   },
   unreadText: {
-    color: '#fff',
+    color: colors.emergency.on,
     fontSize: typography.size.xs,
     fontWeight: typography.weight.bold,
   },

@@ -63,7 +63,7 @@ export default function HospitalProfileScreen() {
         >
           {hospital?.isGovernment ? (
             <View style={styles.badge}>
-              <Ionicons name="shield-checkmark" size={14} color="#fff" />
+              <Ionicons name="shield-checkmark" size={14} color={colors.brand.on} />
               <Text style={styles.badgeText}>
                 {t('hospitalPortal.profile.governmentBadge')}
               </Text>
@@ -168,7 +168,7 @@ function useStyles(colors: AppColors) {
           backgroundColor: colors.brand.primary,
         },
         badgeText: {
-          color: '#fff',
+          color: colors.brand.on,
           fontSize: typography.size.xs,
           fontWeight: typography.weight.bold,
         },

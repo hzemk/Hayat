@@ -174,7 +174,7 @@ export default function ScheduleScreen() {
                     false: colors.surface.border,
                     true: colors.brand.primaryLight,
                   }}
-                  thumbColor={row.isActive ? colors.brand.primary : '#fff'}
+                  thumbColor={row.isActive ? colors.brand.primary : colors.brand.on}
                 />
               </View>
               {row.isActive ? (
@@ -292,7 +292,7 @@ function useStyles(colors: AppColors) {
         },
         headerSubtitle: {
           fontSize: typography.size.xs,
-          color: 'rgba(255,255,255,0.85)',
+          color: colors.brand.onMuted,
           marginTop: 1,
         },
         list: {

@@ -411,7 +411,7 @@ function useStyles(colors: AppColors) {
   },
   headerSubtitle: {
     fontSize: typography.size.xs,
-    color: 'rgba(255,255,255,0.85)',
+    color: colors.brand.onMuted,
     marginTop: 2,
   },
   body: {

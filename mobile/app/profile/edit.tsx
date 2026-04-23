@@ -95,7 +95,7 @@ function useStyles(colors: AppColors) {
     fontWeight: typography.weight.bold,
   },
   heroSubtitle: {
-    color: 'rgba(255,255,255,0.85)',
+    color: colors.brand.onMuted,
     fontSize: typography.size.sm,
   },
   lockBanner: {

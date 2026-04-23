@@ -152,7 +152,7 @@ export default function DoctorHomeScreen() {
                 false: colors.surface.border,
                 true: colors.brand.primaryLight,
               }}
-              thumbColor={isOnline ? colors.brand.primary : '#fff'}
+              thumbColor={isOnline ? colors.brand.primary : colors.brand.on}
             />
           </View>
         </View>
@@ -301,11 +301,11 @@ function useStyles(colors: AppColors) {
   },
   sub: {
     fontSize: typography.size.sm,
-    color: 'rgba(255,255,255,0.85)',
+    color: colors.brand.onMuted,
   },
   availCard: {
     marginTop: spacing.lg,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: colors.brand.overlaySoft,
     borderRadius: radius.xl,
     padding: spacing.md,
     flexDirection: 'row',
@@ -324,7 +324,7 @@ function useStyles(colors: AppColors) {
     fontSize: typography.size.md,
   },
   availHint: {
-    color: 'rgba(255,255,255,0.75)',
+    color: colors.brand.onMutedSoft,
     fontSize: typography.size.xs,
     marginTop: 2,
   },
@@ -397,7 +397,7 @@ function useStyles(colors: AppColors) {
     ...shadow.soft,
   },
   unreadText: {
-    color: '#fff',
+    color: colors.emergency.on,
     fontSize: typography.size.xs,
     fontWeight: typography.weight.bold,
   },

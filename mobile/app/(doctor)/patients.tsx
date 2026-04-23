@@ -164,7 +164,7 @@ function Row({ row }: { row: DoctorPatientRow }) {
             pressed && { opacity: 0.9 },
           ]}
         >
-          <Ionicons name="medical" size={16} color="#fff" />
+          <Ionicons name="medical" size={16} color={colors.brand.on} />
           <Text style={styles.actionPrimaryText}>
             {t('doctorPortal.patient.issueRx')}
           </Text>
@@ -259,7 +259,7 @@ function useStyles(colors: AppColors) {
     backgroundColor: colors.brand.primary,
   },
   actionPrimaryText: {
-    color: '#fff',
+    color: colors.brand.on,
     fontWeight: typography.weight.bold,
     fontSize: typography.size.sm,
   },
@@ -274,7 +274,7 @@ function useStyles(colors: AppColors) {
     ...shadow.soft,
   },
   unreadText: {
-    color: '#fff',
+    color: colors.emergency.on,
     fontSize: typography.size.xs,
     fontWeight: typography.weight.bold,
   },

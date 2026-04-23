@@ -221,10 +221,10 @@ function useStyles(colors: AppColors) {
           paddingHorizontal: spacing.md,
           paddingVertical: 6,
           borderRadius: radius.pill,
-          backgroundColor: 'rgba(0,0,0,0.55)',
+          backgroundColor: colors.scrim.strong,
         },
         mapCoords: {
-          color: '#fff',
+          color: colors.brand.on,
           fontSize: typography.size.xs,
           fontVariant: ['tabular-nums'],
         },

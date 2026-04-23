@@ -265,11 +265,11 @@ function useStyles(colors: AppColors) {
     width: 72,
     height: 72,
     borderRadius: radius.xl,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: colors.brand.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.32)',
+    borderColor: colors.brand.overlayStrong,
     marginBottom: spacing.sm,
     ...shadow.soft,
   },
@@ -279,7 +279,7 @@ function useStyles(colors: AppColors) {
     color: colors.text.inverse,
   },
   subtitle: {
-    color: 'rgba(255,255,255,0.85)',
+    color: colors.brand.onMuted,
     fontSize: typography.size.sm,
   },
   pill: {
@@ -287,7 +287,7 @@ function useStyles(colors: AppColors) {
     paddingVertical: 4,
     paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: colors.brand.overlay,
   },
   pillText: {
     color: colors.text.inverse,

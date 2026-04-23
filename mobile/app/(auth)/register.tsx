@@ -19,7 +19,7 @@ import { HayatLogo } from '@components/HayatLogo';
 import { registerAccount } from '@services/api/auth.api';
 import { apiErrorMessage } from '@services/api/errors';
 import { useAuthStore } from '@stores/auth';
-import { AppColors, radius, spacing, typography, useTheme } from '@theme/index';
+import { AppColors, radius, shadow, spacing, typography, useTheme } from '@theme/index';
 
 type Role = 'PATIENT' | 'DOCTOR';
 
@@ -277,7 +277,7 @@ function useStyles(colors: AppColors) {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: colors.brand.overlaySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -294,11 +294,7 @@ function useStyles(colors: AppColors) {
     borderRadius: radius.xl,
     padding: spacing.xl,
     gap: spacing.lg,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    ...shadow.raised,
   },
   roleRow: {
     flexDirection: 'row',

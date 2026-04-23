@@ -302,7 +302,7 @@ function useStyles(colors: AppColors) {
     fontWeight: typography.weight.semibold,
   },
   chipTextActive: {
-    color: '#fff',
+    color: colors.brand.on,
   },
   centered: {
     flex: 1,

@@ -19,7 +19,7 @@ export function TintedSection({ title, tint, icon, children, style }: Props) {
       <View style={styles.header}>
         {icon ? (
           <View style={[styles.iconBubble, { backgroundColor: palette.fg }]}>
-            <Ionicons name={icon} size={16} color="#fff" />
+            <Ionicons name={icon} size={16} color={colors.brand.on} />
           </View>
         ) : null}
         <Text

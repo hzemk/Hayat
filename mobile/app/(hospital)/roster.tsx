@@ -54,12 +54,12 @@ export default function HospitalRosterScreen() {
         subtitle={t('hospitalPortal.roster.subtitle')}
       >
         <View style={styles.searchWrap}>
-          <Ionicons name="search" size={16} color="rgba(255,255,255,0.85)" />
+          <Ionicons name="search" size={16} color={colors.brand.onMuted} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder={t('hospitalPortal.roster.searchDepartments')}
-            placeholderTextColor="rgba(255,255,255,0.7)"
+            placeholderTextColor={colors.brand.onMutedSoft}
             style={[styles.searchInput, isAr && { textAlign: 'right' }]}
           />
           {query.length > 0 ? (
@@ -67,7 +67,7 @@ export default function HospitalRosterScreen() {
               <Ionicons
                 name="close-circle"
                 size={16}
-                color="rgba(255,255,255,0.85)"
+                color={colors.brand.onMuted}
               />
             </Pressable>
           ) : null}
@@ -205,14 +205,14 @@ function useStyles(colors: AppColors) {
           flexDirection: 'row',
           alignItems: 'center',
           gap: spacing.sm,
-          backgroundColor: 'rgba(255,255,255,0.18)',
+          backgroundColor: colors.brand.overlaySoft,
           borderRadius: radius.lg,
           paddingHorizontal: spacing.md,
           height: 42,
         },
         searchInput: {
           flex: 1,
-          color: '#FFFFFF',
+          color: colors.brand.on,
           fontSize: typography.size.sm,
           paddingVertical: 0,
         },

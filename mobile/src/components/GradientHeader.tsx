@@ -43,12 +43,12 @@ export function GradientHeader({
           <Pressable
             onPress={() => router.back()}
             hitSlop={12}
-            style={styles.backBtn}
+            style={[styles.backBtn, { backgroundColor: colors.brand.overlay }]}
           >
             <Ionicons
               name={isRtl ? 'chevron-forward' : 'chevron-back'}
               size={22}
-              color="#FFFFFF"
+              color={colors.brand.on}
             />
           </Pressable>
         ) : (
@@ -56,12 +56,12 @@ export function GradientHeader({
         )}
         <View style={{ flex: 1 }}>
           {subtitle ? (
-            <Text style={styles.subtitle} numberOfLines={1}>
+            <Text style={[styles.subtitle, { color: colors.brand.onMuted }]} numberOfLines={1}>
               {subtitle}
             </Text>
           ) : null}
           {title ? (
-            <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>
+            <Text style={[styles.title, { color: colors.brand.on }]} numberOfLines={1} adjustsFontSizeToFit>
               {title}
             </Text>
           ) : null}
@@ -88,16 +88,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   subtitle: {
-    color: 'rgba(255,255,255,0.85)',
     fontSize: typography.size.sm,
   },
   title: {
-    color: '#FFFFFF',
     fontSize: typography.size.xxl,
     fontWeight: typography.weight.bold,
   },

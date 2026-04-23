@@ -294,7 +294,7 @@ function DeptChip({
       <Text
         style={[
           styles.chipText,
-          active && { color: '#fff' },
+          active && { color: colors.brand.on },
         ]}
       >
         {label}
@@ -309,7 +309,7 @@ function useStyles(colors: AppColors) {
       StyleSheet.create({
         backdrop: {
           ...StyleSheet.absoluteFillObject,
-          backgroundColor: 'rgba(0,0,0,0.4)',
+          backgroundColor: colors.scrim.base,
         },
         kbWrap: {
           flex: 1,

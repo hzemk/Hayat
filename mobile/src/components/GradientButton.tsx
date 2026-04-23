@@ -53,11 +53,11 @@ export function GradientButton({
         style={[styles.base, size === 'md' ? styles.md : styles.lg]}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.brand.on} />
         ) : (
           <View style={styles.content}>
             {leftIcon}
-            <Text style={styles.label}>{label}</Text>
+            <Text style={[styles.label, { color: colors.brand.on }]}>{label}</Text>
             {rightIcon}
           </View>
         )}
@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: {
-    color: '#fff',
     fontSize: typography.size.md,
     fontWeight: typography.weight.semibold,
   },

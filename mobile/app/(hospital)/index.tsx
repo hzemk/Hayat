@@ -240,7 +240,7 @@ function useStyles(colors: AppColors) {
           justifyContent: 'center',
         },
         unreadText: {
-          color: '#fff',
+          color: colors.emergency.on,
           fontSize: typography.size.xs,
           fontWeight: typography.weight.bold,
         },

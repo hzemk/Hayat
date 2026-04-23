@@ -758,7 +758,7 @@ function useStyles(colors: AppColors) {
     width: 36,
     height: 36,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: colors.brand.overlay,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -833,7 +833,7 @@ function useStyles(colors: AppColors) {
     borderRadius: radius.pill,
   },
   erBadgeText: {
-    color: '#fff',
+    color: colors.emergency.on,
     fontSize: 10,
     fontWeight: typography.weight.bold,
     letterSpacing: 0.5,

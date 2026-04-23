@@ -9,7 +9,9 @@ export const lightColors = {
     // values in light and dark).
     overlay: 'rgba(255,255,255,0.22)',
     overlayStrong: 'rgba(255,255,255,0.32)',
+    overlaySoft: 'rgba(255,255,255,0.18)',
     onMuted: 'rgba(255,255,255,0.85)',
+    onMutedSoft: 'rgba(255,255,255,0.7)',
     // Text / icon on solid brand-colored surfaces — always white.
     on: '#FFFFFF',
     // Jordan's Sanad digital-ID brand colors — not theme-contextual.
@@ -20,6 +22,12 @@ export const lightColors = {
     pressed: '#991B1B',
     // Text / icon color on emergency-red surfaces — always white.
     on: '#FFFFFF',
+  },
+  // Modal/overlay scrims — translucent black backdrops. Same values in both
+  // themes (scrim is a UX function, not a palette).
+  scrim: {
+    base: 'rgba(0,0,0,0.4)',
+    strong: 'rgba(0,0,0,0.55)',
   },
   text: {
     primary: '#0F172A',
@@ -60,7 +68,9 @@ export const darkColors: typeof lightColors = {
     gradient: ['#5EEAD4', '#22D3EE', '#0EA5E9'] as readonly [string, string, string],
     overlay: 'rgba(255,255,255,0.22)',
     overlayStrong: 'rgba(255,255,255,0.32)',
+    overlaySoft: 'rgba(255,255,255,0.18)',
     onMuted: 'rgba(255,255,255,0.85)',
+    onMutedSoft: 'rgba(255,255,255,0.7)',
     on: '#FFFFFF',
     sanad: { bg: '#000000', fg: '#FFFFFF' },
   },
@@ -68,6 +78,10 @@ export const darkColors: typeof lightColors = {
     base: '#EF4444',
     pressed: '#DC2626',
     on: '#FFFFFF',
+  },
+  scrim: {
+    base: 'rgba(0,0,0,0.4)',
+    strong: 'rgba(0,0,0,0.55)',
   },
   text: {
     primary: '#F1F5F9',

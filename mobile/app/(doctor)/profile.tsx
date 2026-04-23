@@ -126,7 +126,7 @@ export default function DoctorProfileScreen() {
                   false: colors.surface.border,
                   true: colors.brand.primaryLight,
                 }}
-                thumbColor={isOnline ? colors.brand.primary : '#fff'}
+                thumbColor={isOnline ? colors.brand.primary : colors.brand.on}
               />
             </View>
           </Card>
@@ -236,11 +236,11 @@ function useStyles(colors: AppColors) {
     width: 84,
     height: 84,
     borderRadius: radius.xl,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: colors.brand.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.32)',
+    borderColor: colors.brand.overlayStrong,
     marginBottom: spacing.sm,
     ...shadow.soft,
   },
@@ -255,12 +255,12 @@ function useStyles(colors: AppColors) {
     color: colors.text.inverse,
   },
   sub: {
-    color: 'rgba(255,255,255,0.9)',
+    color: colors.brand.onMuted,
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
   },
   subHint: {
-    color: 'rgba(255,255,255,0.75)',
+    color: colors.brand.onMutedSoft,
     fontSize: typography.size.xs,
   },
   body: {
