@@ -219,6 +219,16 @@ function HospitalCard({
       </View>
 
       <View style={styles.actions}>
+        <Pressable
+          onPress={() =>
+            router.push({ pathname: '/hospital-location/[id]', params: { id: hospital.id } })
+          }
+          style={[styles.iconBtn]}
+          hitSlop={8}
+          accessibilityLabel={t('hospitals.location')}
+        >
+          <Ionicons name="location" size={18} color={colors.brand.primary} />
+        </Pressable>
         {hospital.phone ? (
           <Pressable
             onPress={() => Linking.openURL(`tel:${hospital.phone}`)}
@@ -327,6 +337,16 @@ function useStyles(colors: AppColors) {
     gap: spacing.xs,
     paddingVertical: spacing.sm,
     borderRadius: radius.lg,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.surface.border,
+    backgroundColor: colors.surface.raised,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionSecondary: {
     borderWidth: 1,
