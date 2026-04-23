@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '@prisma/client';
@@ -26,7 +26,9 @@ export class TokensService {
 
     const refreshToken = crypto.randomBytes(48).toString('hex');
     const tokenHash = this.hash(refreshToken);
-    const ttlDays = this.parseDays(this.config.get<string>('jwt.refreshTtl') ?? '30d');
+    // Format is guaranteed by config-boot validation (Zod regex /^\d+d$/).
+    const ttl = this.config.get<string>('jwt.refreshTtl') ?? '30d';
+    const ttlDays = parseInt(ttl, 10);
     const expiresAt = new Date(Date.now() + ttlDays * 86400 * 1000);
 
     await this.prisma.refreshToken.create({
@@ -68,11 +70,5 @@ export class TokensService {
 
   private hash(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
-  }
-
-  private parseDays(ttl: string): number {
-    const match = ttl.match(/^(\d+)d$/);
-    if (!match) throw new UnauthorizedException('Invalid refresh TTL config');
-    return parseInt(match[1], 10);
   }
 }
