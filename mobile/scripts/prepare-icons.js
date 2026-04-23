@@ -1,6 +1,8 @@
 const path = require('path');
 const Jimp = require('jimp-compact');
 
+// TODO(hardening): address in dedicated cleanup
+// eslint-disable-next-line no-undef
 const assetsDir = path.join(__dirname, '..', 'assets');
 const source = path.join(assetsDir, 'WhatsApp Image 2026-04-20 at 5.10.25 AM.jpeg');
 
