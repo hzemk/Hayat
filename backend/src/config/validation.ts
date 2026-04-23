@@ -19,6 +19,10 @@ const schema = z.object({
   GROQ_MODEL: z.string().default('meta-llama/llama-4-scout-17b-16e-instruct'),
   GROQ_CHAT_MODEL: z.string().default('llama-3.3-70b-versatile'),
   SMS_PROVIDER: z.enum(['console', 'zain', 'orange', 'umniah']).default('console'),
+  ENABLE_DEMO_ROLES: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true' || v === '1'),
 });
 
 export function validateEnv(raw: Record<string, unknown>) {

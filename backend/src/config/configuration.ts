@@ -44,4 +44,9 @@ export default () => ({
     auth: parseInt(process.env.THROTTLE_AUTH ?? '10', 10),
     emergency: parseInt(process.env.THROTTLE_EMERGENCY ?? '20', 10),
   },
+  features: {
+    enableDemoRoles:
+      process.env.ENABLE_DEMO_ROLES === 'true' ||
+      process.env.ENABLE_DEMO_ROLES === '1',
+  },
 });

@@ -5,6 +5,7 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AuthProvider, User, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '@prisma-db/prisma.service';
@@ -38,12 +39,17 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly tokens: TokensService,
     private readonly insuranceCard: InsuranceCardService,
+    private readonly config: ConfigService,
   ) {}
+
+  private get demoRolesEnabled(): boolean {
+    return this.config.get<boolean>('features.enableDemoRoles') === true;
+  }
 
   async register(dto: RegisterDto) {
     const email = dto.email.trim().toLowerCase();
-    const isDr = isDoctorEmail(email);
-    const isHosp = isHospitalEmail(email);
+    const isDr = this.demoRolesEnabled && isDoctorEmail(email);
+    const isHosp = this.demoRolesEnabled && isHospitalEmail(email);
     const role = isHosp
       ? UserRole.HOSPITAL_ADMIN
       : isDr
@@ -147,7 +153,7 @@ export class AuthService {
 
     const email = identity.email.trim().toLowerCase();
 
-    const isDr = isDoctorEmail(email);
+    const isDr = this.demoRolesEnabled && isDoctorEmail(email);
     const user = await this.prisma.user.upsert({
       where: { sanadId: identity.subject },
       update: {
@@ -218,7 +224,7 @@ export class AuthService {
   }
 
   private async promoteIfDoctorEmail(user: User): Promise<User> {
-    if (!isDoctorEmail(user.email)) return user;
+    if (!this.demoRolesEnabled || !isDoctorEmail(user.email)) return user;
     const updated =
       user.role === UserRole.DOCTOR
         ? user
@@ -231,7 +237,7 @@ export class AuthService {
   }
 
   private async promoteIfHospitalEmail(user: User): Promise<User> {
-    if (!isHospitalEmail(user.email)) return user;
+    if (!this.demoRolesEnabled || !isHospitalEmail(user.email)) return user;
     const updated =
       user.role === UserRole.HOSPITAL_ADMIN
         ? user
