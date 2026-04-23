@@ -380,7 +380,7 @@ export class HospitalPortalService {
     });
     if (!patient) throw new NotFoundException('Patient not found');
 
-    const [latestSymptomMessage, prescriptions] = await Promise.all([
+    const [latestSymptomMessage, prescriptions, insuranceCard] = await Promise.all([
       this.prisma.doctorMessage.findFirst({
         where: {
           threadId: thread.id,
@@ -404,6 +404,12 @@ export class HospitalPortalService {
               instructionsEn: true,
             },
           },
+        },
+      }),
+      this.prisma.insuranceCard.findUnique({
+        where: { userId: patientId },
+        include: {
+          issuedByHospital: { select: { id: true, nameAr: true, nameEn: true } },
         },
       }),
     ]);
@@ -462,6 +468,7 @@ export class HospitalPortalService {
         expiresAt: rx.expiresAt,
         items: rx.items,
       })),
+      insuranceCard,
     };
   }
 

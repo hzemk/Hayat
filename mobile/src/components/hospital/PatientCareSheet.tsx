@@ -17,6 +17,7 @@ import {
   PatientCarePrescription,
   getPatientCare,
 } from '@services/api/hospital-portal.api';
+import { InsuranceCardVisual } from '@components/InsuranceCardVisual';
 import {
   AppColors,
   radius,
@@ -134,6 +135,20 @@ export function PatientCareSheet({
                 </Text>
               </Section>
             ) : null}
+
+            <Section
+              icon="card"
+              tint={colors.tint.blue}
+              title={t('hospitalPortal.roster.care.insurance')}
+            >
+              {data.insuranceCard ? (
+                <InsuranceCardVisual card={data.insuranceCard} compact />
+              ) : (
+                <Text style={styles.emptyText}>
+                  {t('hospitalPortal.roster.care.noInsurance')}
+                </Text>
+              )}
+            </Section>
 
             <Section
               icon="medical"

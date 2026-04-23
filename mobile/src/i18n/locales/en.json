@@ -855,6 +855,8 @@
       "care": {
         "title": "Care details",
         "subtitle": "Conditions and prescriptions under this doctor",
+        "insurance": "Insurance",
+        "noInsurance": "No insurance card on file",
         "conditions": "Problems / conditions",
         "noConditions": "No documented conditions",
         "allergies": "Allergies",

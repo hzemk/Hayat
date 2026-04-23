@@ -1,4 +1,5 @@
 import { api } from './client';
+import { InsuranceCard } from './insurance.api';
 
 export interface HospitalMe {
   id: string;
@@ -300,6 +301,7 @@ export interface PatientCare {
     metadata: Record<string, unknown> | null;
   } | null;
   prescriptions: PatientCarePrescription[];
+  insuranceCard: InsuranceCard | null;
 }
 
 export async function getPatientCare(
