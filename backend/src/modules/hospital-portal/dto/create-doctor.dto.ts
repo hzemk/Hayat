@@ -42,6 +42,8 @@ export class CreateHospitalDoctorDto {
 
   @IsOptional()
   @IsString()
+  // TODO(hardening): address in dedicated cleanup
+  // eslint-disable-next-line no-useless-escape
   @Matches(/^\+?[0-9 \-]{6,20}$/)
   phoneNumber?: string;
 

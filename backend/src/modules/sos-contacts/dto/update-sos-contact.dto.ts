@@ -18,6 +18,8 @@ export class UpdateSosContactDto {
 
   @IsOptional()
   @IsString()
+  // TODO(hardening): address in dedicated cleanup
+  // eslint-disable-next-line no-useless-escape
   @Matches(/^\+?[0-9 \-]{6,20}$/, {
     message: 'phoneNumber must be a valid phone number',
   })

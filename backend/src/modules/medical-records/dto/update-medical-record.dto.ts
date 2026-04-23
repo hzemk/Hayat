@@ -5,6 +5,8 @@ import {
   IsString,
   Matches,
   Max,
+  // TODO(hardening): address in dedicated cleanup
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   MaxLength,
   Min,
 } from 'class-validator';

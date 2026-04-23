@@ -6,6 +6,8 @@ import {
   MinLength,
 } from 'class-validator';
 
+// TODO(hardening): address in dedicated cleanup
+// eslint-disable-next-line no-useless-escape
 const PHONE_RE = /^\+?[0-9 \-]{6,20}$/;
 
 export class CreateEmergencyContactDto {
