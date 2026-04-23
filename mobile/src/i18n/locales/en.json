@@ -209,9 +209,16 @@
     "departments": "Departments",
     "book": "Book now",
     "call": "Call",
+    "location": "Location",
     "noResults": "No hospitals match your search.",
     "loadFailed": "Couldn't load hospitals. Check your connection and try again.",
     "retry": "Try again"
+  },
+  "hospitalLocation": {
+    "title": "Hospital location",
+    "openInMaps": "Open in Google Maps",
+    "getDirections": "Get directions",
+    "openFailed": "Could not open the map app."
   },
   "profile": {
     "title": "Profile",

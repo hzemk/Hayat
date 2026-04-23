@@ -13,6 +13,8 @@ export interface Hospital {
   nameEn: string;
   city: string;
   phone: string | null;
+  addressAr: string | null;
+  addressEn: string | null;
   latitude: number;
   longitude: number;
   isGovernment: boolean;
