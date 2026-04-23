@@ -54,9 +54,15 @@ api.interceptors.response.use(
 
     original._retry = true;
 
-    refreshInFlight = refreshInFlight ?? performRefresh();
+    // Clearing happens inside performRefresh's .finally() so an exception
+    // from performRefresh can't leave a rejected in-flight promise cached
+    // for all future 401s. See commit body for the race details.
+    if (!refreshInFlight) {
+      refreshInFlight = performRefresh().finally(() => {
+        refreshInFlight = null;
+      });
+    }
     const newAccess = await refreshInFlight;
-    refreshInFlight = null;
 
     if (!newAccess) {
       if (onForceLogout) await onForceLogout();
