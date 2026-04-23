@@ -62,3 +62,10 @@ export async function createPrescription(payload: {
   const { data } = await api.post<Prescription>('/prescriptions', payload);
   return data;
 }
+
+export async function createRemindersFromPrescription(prescriptionId: string) {
+  const { data } = await api.post<{ created: number; prescriptionId: string }>(
+    `/prescriptions/${prescriptionId}/reminders`,
+  );
+  return data;
+}

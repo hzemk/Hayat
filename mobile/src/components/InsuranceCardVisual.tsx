@@ -15,7 +15,7 @@ const COVERAGE_GRADIENTS: Record<
   readonly [string, string, string]
 > = {
   PUBLIC: ['#0EA5E9', '#0284C7', '#075985'],
-  MILITARY: ['#65A30D', '#4D7C0F', '#365314'],
+  MILITARY: ['#F43F5E', '#BE123C', '#7F1D1D'],
   PRIVATE: ['#9333EA', '#7E22CE', '#581C87'],
 };
 

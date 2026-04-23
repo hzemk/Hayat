@@ -335,7 +335,11 @@
     "doctorUnavailable": "خارج الدوام",
     "backToTime": "العودة للوقت",
     "locationDeniedTitle": "نستخدم عمّان كموقعك",
-    "locationDeniedBody": "لم نستطع استخدام موقعك، لذا يتم ترتيب المستشفيات من وسط عمّان. ما زال بإمكانك الحجز في أي مكان."
+    "locationDeniedBody": "لم نستطع استخدام موقعك، لذا يتم ترتيب المستشفيات من وسط عمّان. ما زال بإمكانك الحجز في أي مكان.",
+    "bookingFor": "الحجز لـ",
+    "self": "نفسي",
+    "adultCannotBook": "{{name}} بلغ 18 عامًا أو أكثر ويجب أن يحجز موعده بنفسه.",
+    "adultCannotBookTitle": "البالغون يحجزون بأنفسهم"
   },
   "emergency": {
     "title": "طوارئ",
@@ -402,7 +406,8 @@
     "dose": "الجرعة",
     "duration": "المدة (أيام)",
     "frequency": "التكرار",
-    "instructions": "تعليمات"
+    "instructions": "تعليمات",
+    "addedToReminders": "تمت إضافة {{count}} تذكير دواء إلى قائمة التذكيرات."
   },
   "vaccines": {
     "title": "المطاعيم",

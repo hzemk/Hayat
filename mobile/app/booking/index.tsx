@@ -25,9 +25,20 @@ import {
   Hospital,
 } from '@services/api/hospitals.api';
 import { createAppointment } from '@services/api/appointments.api';
+import { listFamilyMembers, FamilyMember } from '@services/api/family.api';
 import { apiErrorMessage } from '@services/api/errors';
 import { localizeCity } from '@i18n/places';
 import { AppColors, radius, spacing, typography, useTheme } from '@theme/index';
+
+const MIN_BOOKING_AGE_YEARS = 18;
+
+function ageYears(dateOfBirth: string, ref: Date = new Date()) {
+  const dob = new Date(dateOfBirth);
+  let years = ref.getFullYear() - dob.getFullYear();
+  const m = ref.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && ref.getDate() < dob.getDate())) years--;
+  return years;
+}
 
 type Step = 'hospital' | 'department' | 'schedule' | 'doctor';
 
@@ -66,6 +77,7 @@ export default function BookingScreen() {
   const [hospital, setHospital] = useState<Hospital | null>(null);
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [doctorId, setDoctorId] = useState<string | null>(null);
+  const [familyMemberId, setFamilyMemberId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [now, setNow] = useState(() => new Date());
   const queryClient = useQueryClient();
@@ -152,6 +164,16 @@ export default function BookingScreen() {
     enabled: step === 'doctor' && !!hospital && !!departmentId,
   });
 
+  const familyQuery = useQuery({
+    queryKey: ['family-members'],
+    queryFn: listFamilyMembers,
+  });
+  const familyMembers = familyQuery.data ?? [];
+  const selectedFamilyMember = useMemo(
+    () => familyMembers.find((m) => m.id === familyMemberId) ?? null,
+    [familyMembers, familyMemberId],
+  );
+
   const selectedDepartment = useMemo(
     () => hospital?.departments.find((d) => d.id === departmentId),
     [hospital, departmentId],
@@ -196,9 +218,21 @@ export default function BookingScreen() {
       hospitalId: hospital.id,
       departmentId,
       doctorId: doctorId ?? undefined,
+      familyMemberId: familyMemberId ?? undefined,
       scheduledAt: scheduledAt.toISOString(),
       reason: reason.trim() || undefined,
     });
+  }
+
+  function onPickFamily(member: FamilyMember | null) {
+    if (member && ageYears(member.dateOfBirth) >= MIN_BOOKING_AGE_YEARS) {
+      Alert.alert(
+        t('booking.adultCannotBookTitle'),
+        t('booking.adultCannotBook', { name: member.fullName }),
+      );
+      return;
+    }
+    setFamilyMemberId(member?.id ?? null);
   }
 
   function onPickHospital(h: Hospital) {
@@ -264,6 +298,81 @@ export default function BookingScreen() {
       />
 
       <View style={styles.body}>
+        {familyMembers.length > 0 ? (
+          <View>
+            <Text style={styles.sectionLabel}>{t('booking.bookingFor')}</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipRow}
+            >
+              <Pressable
+                onPress={() => onPickFamily(null)}
+                style={[
+                  styles.personChip,
+                  familyMemberId === null && styles.personChipSelected,
+                ]}
+              >
+                <Ionicons
+                  name="person"
+                  size={14}
+                  color={
+                    familyMemberId === null
+                      ? colors.text.inverse
+                      : colors.text.primary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.personChipText,
+                    familyMemberId === null && styles.personChipTextSelected,
+                  ]}
+                >
+                  {t('booking.self')}
+                </Text>
+              </Pressable>
+              {familyMembers.map((m) => {
+                const age = ageYears(m.dateOfBirth);
+                const isAdult = age >= MIN_BOOKING_AGE_YEARS;
+                const selected = familyMemberId === m.id;
+                return (
+                  <Pressable
+                    key={m.id}
+                    onPress={() => onPickFamily(m)}
+                    style={[
+                      styles.personChip,
+                      selected && styles.personChipSelected,
+                      isAdult && styles.personChipDisabled,
+                    ]}
+                  >
+                    <Ionicons
+                      name={isAdult ? 'lock-closed' : 'happy'}
+                      size={14}
+                      color={
+                        selected
+                          ? colors.text.inverse
+                          : isAdult
+                            ? colors.text.muted
+                            : colors.text.primary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.personChipText,
+                        selected && styles.personChipTextSelected,
+                        isAdult && { color: colors.text.muted },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {m.fullName} · {age}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        ) : null}
+
         {step === 'hospital' ? (
           <View style={{ gap: spacing.md }}>
             {isLoading && hospitals.length === 0 ? (
@@ -814,6 +923,35 @@ function useStyles(colors: AppColors) {
     color: colors.brand.primary,
     fontWeight: typography.weight.semibold,
     marginTop: 2,
+  },
+  personChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.surface.border,
+    backgroundColor: colors.surface.base,
+    maxWidth: 200,
+  },
+  personChipSelected: {
+    backgroundColor: colors.brand.primary,
+    borderColor: colors.brand.primary,
+  },
+  personChipDisabled: {
+    borderStyle: 'dashed',
+    backgroundColor: colors.surface.raised,
+  },
+  personChipText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+    color: colors.text.primary,
+    flexShrink: 1,
+  },
+  personChipTextSelected: {
+    color: colors.text.inverse,
   },
   avatarWrap: {
     position: 'relative',

@@ -14,6 +14,13 @@ export interface AppointmentDoctor {
   user: { id: string; fullName: string | null; email: string };
 }
 
+export interface AppointmentFamilyMember {
+  id: string;
+  fullName: string;
+  dateOfBirth: string;
+  relationship: string;
+}
+
 export interface Appointment {
   id: string;
   scheduledAt: string;
@@ -22,6 +29,7 @@ export interface Appointment {
   hospital: { id: string; nameAr: string; nameEn: string; city?: string };
   department: { id: string; nameAr: string; nameEn: string };
   doctor: AppointmentDoctor | null;
+  familyMember?: AppointmentFamilyMember | null;
 }
 
 export async function listAppointments() {
@@ -33,6 +41,7 @@ export async function createAppointment(payload: {
   hospitalId: string;
   departmentId: string;
   doctorId?: string;
+  familyMemberId?: string;
   scheduledAt: string;
   reason?: string;
 }) {

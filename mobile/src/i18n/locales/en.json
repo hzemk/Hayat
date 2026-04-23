@@ -335,7 +335,11 @@
     "doctorUnavailable": "Off duty",
     "backToTime": "Back to time",
     "locationDeniedTitle": "Using Amman as your location",
-    "locationDeniedBody": "We couldn't use your GPS, so hospitals are sorted from central Amman. You can still book anywhere."
+    "locationDeniedBody": "We couldn't use your GPS, so hospitals are sorted from central Amman. You can still book anywhere.",
+    "bookingFor": "Booking for",
+    "self": "Myself",
+    "adultCannotBook": "{{name}} is 18 or older and must book their own appointment.",
+    "adultCannotBookTitle": "Adults book themselves"
   },
   "emergency": {
     "title": "Emergency",
@@ -402,7 +406,8 @@
     "dose": "Dose",
     "duration": "Duration (days)",
     "frequency": "Frequency",
-    "instructions": "Instructions"
+    "instructions": "Instructions",
+    "addedToReminders": "{{count}} medication reminders added to your reminders."
   },
   "vaccines": {
     "title": "Vaccinations",

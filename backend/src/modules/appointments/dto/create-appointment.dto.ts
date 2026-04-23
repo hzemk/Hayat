@@ -11,6 +11,10 @@ export class CreateAppointmentDto {
   @IsUUID()
   doctorId?: string;
 
+  @IsOptional()
+  @IsUUID()
+  familyMemberId?: string;
+
   @IsDateString()
   scheduledAt!: string;
 

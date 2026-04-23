@@ -20,6 +20,7 @@ import { GradientButton } from '@components/GradientButton';
 import { Button } from '@components/Button';
 import {
   createPrescription,
+  createRemindersFromPrescription,
   scanPrescription,
   ScanResult,
   ScannedItem,
@@ -71,10 +72,19 @@ export default function ScanPrescriptionScreen() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: createPrescription,
-    onSuccess: () => {
+    mutationFn: async (payload: { notes?: string; items: ScannedItem[] }) => {
+      const prescription = await createPrescription(payload);
+      const result = await createRemindersFromPrescription(prescription.id);
+      return { prescription, remindersCreated: result.created };
+    },
+    onSuccess: ({ remindersCreated }) => {
       queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
-      router.back();
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+      Alert.alert(
+        '',
+        t('prescriptions.addedToReminders', { count: remindersCreated }),
+        [{ text: t('common.done') || 'Done', onPress: () => router.back() }],
+      );
     },
     onError: (err) => {
       Alert.alert(t('common.error') || 'Error', apiErrorMessage(err));
@@ -296,7 +306,7 @@ export default function ScanPrescriptionScreen() {
           />
 
           <GradientButton
-            label={t('common.save') || 'Save'}
+            label={t('common.done') || 'Done'}
             onPress={onSave}
             loading={saveMutation.isPending}
           />

@@ -36,4 +36,12 @@ export class PrescriptionsController {
   ) {
     return this.prescriptions.getById(userId, id);
   }
+
+  @Post(':id/reminders')
+  createReminders(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+  ) {
+    return this.prescriptions.createRemindersFromPrescription(userId, id);
+  }
 }

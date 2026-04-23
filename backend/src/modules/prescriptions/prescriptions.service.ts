@@ -103,6 +103,62 @@ export class PrescriptionsService {
     return withSource(rx);
   }
 
+  async createRemindersFromPrescription(userId: string, prescriptionId: string) {
+    const rx = await this.prisma.prescription.findUnique({
+      where: { id: prescriptionId },
+      include: { items: true },
+    });
+    if (!rx) throw new NotFoundException('Prescription not found');
+    if (rx.patientId !== userId) throw new ForbiddenException();
+    if (rx.items.length === 0) {
+      throw new BadRequestException('Prescription has no medications');
+    }
+
+    // Drop any PRESCRIPTION-sourced reminders previously generated for this
+    // prescription's meds so repeated "done" taps stay idempotent.
+    const existingTitles = rx.items.map(
+      (i) => `${i.medicationName} ${i.dose}`.trim(),
+    );
+    await this.prisma.reminder.deleteMany({
+      where: {
+        userId,
+        source: 'PRESCRIPTION',
+        title: { in: existingTitles },
+      },
+    });
+
+    const hourMs = 60 * 60 * 1000;
+    const dayMs = 24 * hourMs;
+    const startAt = new Date(Date.now() + hourMs);
+
+    const created = await this.prisma.reminder.createMany({
+      data: rx.items.map((item, idx) => {
+        const title = `${item.medicationName} ${item.dose}`.trim();
+        const subtitle =
+          item.instructionsEn ??
+          item.instructionsAr ??
+          item.frequency ??
+          null;
+        const scheduledAt = new Date(startAt.getTime() + idx * 15 * 60 * 1000);
+        const endsAt = item.durationDays
+          ? new Date(scheduledAt.getTime() + item.durationDays * dayMs)
+          : null;
+        return {
+          userId,
+          type: 'MEDICATION' as const,
+          title,
+          subtitle,
+          scheduledAt,
+          endsAt,
+          recurrence: 'daily',
+          source: 'PRESCRIPTION' as const,
+        };
+      }),
+    });
+
+    return { created: created.count, prescriptionId };
+  }
+
   async create(userId: string, dto: CreatePrescriptionDto) {
     const rx = await this.prisma.prescription.create({
       data: {

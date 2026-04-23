@@ -27,7 +27,19 @@ export class AppointmentsService {
         user: { select: { id: true, fullName: true, email: true } },
       },
     },
+    familyMember: {
+      select: { id: true, fullName: true, dateOfBirth: true, relationship: true },
+    },
   } as const;
+
+  private readonly MIN_BOOKING_AGE_YEARS = 18;
+
+  private ageYearsAt(dateOfBirth: Date, ref: Date = new Date()) {
+    let years = ref.getFullYear() - dateOfBirth.getFullYear();
+    const m = ref.getMonth() - dateOfBirth.getMonth();
+    if (m < 0 || (m === 0 && ref.getDate() < dateOfBirth.getDate())) years--;
+    return years;
+  }
 
   listMine(userId: string) {
     return this.prisma.appointment.findMany({
@@ -68,9 +80,24 @@ export class AppointmentsService {
       }
     }
 
+    if (dto.familyMemberId) {
+      const member = await this.prisma.familyMember.findUnique({
+        where: { id: dto.familyMemberId },
+        select: { guardianId: true, dateOfBirth: true, fullName: true },
+      });
+      if (!member) throw new NotFoundException('Family member not found');
+      if (member.guardianId !== userId) throw new ForbiddenException();
+      if (this.ageYearsAt(member.dateOfBirth, scheduledAt) >= this.MIN_BOOKING_AGE_YEARS) {
+        throw new BadRequestException(
+          `${member.fullName} is 18 or older and must book their own appointments`,
+        );
+      }
+    }
+
     const created = await this.prisma.appointment.create({
       data: {
         userId,
+        familyMemberId: dto.familyMemberId,
         hospitalId: dto.hospitalId,
         departmentId: dto.departmentId,
         doctorId: dto.doctorId,

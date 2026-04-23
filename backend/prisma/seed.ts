@@ -114,6 +114,9 @@ const DEPARTMENTS = [
 const DEMO_EMAIL = 'ahmed@hayat.jo';
 const DEMO_PASSWORD = 'hayat1234';
 
+const MONA_EMAIL = 'mona@hayat.jo';
+const MONA_PASSWORD = 'hayat1234';
+
 async function seedHospitals() {
   console.log('Seeding hospitals + departments...');
   const created: { id: string; nameEn: string; slug: string }[] = [];
@@ -675,6 +678,21 @@ async function seedDemoUser(hospitals: { id: string; nameEn: string }[]) {
     },
   });
 
+  // Adult dependent — listed in the family roster but cannot be booked for
+  // by the guardian. Drives the "18+ must book themselves" UX.
+  await prisma.familyMember.create({
+    data: {
+      guardianId: user.id,
+      fullName: 'محمود العلي',
+      dateOfBirth: new Date('1962-04-15'),
+      gender: Gender.MALE,
+      relationship: 'father',
+      bloodType: 'B+',
+      allergies: ['Sulfa drugs'],
+      conditions: ['Type 2 diabetes', 'Hypertension'],
+    },
+  });
+
   await prisma.reminder.createMany({
     data: [
       {
@@ -1135,7 +1153,160 @@ async function seedDefaultThread(
     ],
   });
 
+  // Prescription issued by Dr. Layla for the demo patient. The patient's
+  // earlier seeded prescriptions use the patient's own user id as a placeholder
+  // doctor; this one is a real doctor-issued prescription that should appear
+  // attributed to "Dr. Layla Haddad" in the patient's prescription list.
+  await prisma.prescription.deleteMany({
+    where: { patientId: patient.id, doctorId: layla.id },
+  });
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  await prisma.prescription.create({
+    data: {
+      patientId: patient.id,
+      doctorUserId: layla.userId,
+      doctorId: layla.id,
+      issuedAt: new Date(Date.now() - 1 * dayMs),
+      expiresAt: new Date(Date.now() + 89 * dayMs),
+      status: PrescriptionStatus.ACTIVE,
+      notes: 'Refill — diabetes & hypertension management (Dr. Layla)',
+      items: {
+        create: [
+          {
+            medicationName: 'Metformin XR',
+            dose: '1000mg',
+            frequency: 'Once daily with dinner',
+            durationDays: 90,
+            instructionsAr: 'مع وجبة العشاء',
+            instructionsEn: 'With evening meal',
+          },
+          {
+            medicationName: 'Amlodipine',
+            dose: '5mg',
+            frequency: 'Once daily in the morning',
+            durationDays: 90,
+            instructionsAr: 'صباحاً مع كأس ماء',
+            instructionsEn: 'Morning with a glass of water',
+          },
+          {
+            medicationName: 'Atorvastatin',
+            dose: '20mg',
+            frequency: 'Once daily at bedtime',
+            durationDays: 90,
+            instructionsAr: 'قبل النوم',
+            instructionsEn: 'At bedtime',
+          },
+        ],
+      },
+    },
+  });
+
   console.log(`Seeded default doctor thread with Dr. Layla for ${patientEmail}.`);
+}
+
+async function seedMona(doctors: SeededDoctor[]) {
+  console.log(`Seeding patient ${MONA_EMAIL}...`);
+  const passwordHash = await bcrypt.hash(MONA_PASSWORD, 12);
+
+  const mona = await prisma.user.upsert({
+    where: { email: MONA_EMAIL },
+    update: {
+      passwordHash,
+      fullName: 'منى الزعبي',
+      phoneNumber: '+962795551188',
+      emailVerified: true,
+    },
+    create: {
+      email: MONA_EMAIL,
+      passwordHash,
+      authProvider: AuthProvider.LOCAL,
+      emailVerified: true,
+      fullName: 'منى الزعبي',
+      phoneNumber: '+962795551188',
+      dateOfBirth: new Date('1988-11-03'),
+      gender: Gender.FEMALE,
+      preferredLocale: 'ar',
+    },
+  });
+
+  // Children — Mona can book appointments for these (all under 18)
+  await prisma.familyMember.deleteMany({ where: { guardianId: mona.id } });
+
+  await prisma.familyMember.create({
+    data: {
+      guardianId: mona.id,
+      fullName: 'سارة الزعبي',
+      dateOfBirth: new Date('2015-06-18'),
+      gender: Gender.FEMALE,
+      relationship: 'daughter',
+      bloodType: 'O+',
+      allergies: [],
+      conditions: [],
+    },
+  });
+
+  await prisma.familyMember.create({
+    data: {
+      guardianId: mona.id,
+      fullName: 'يوسف الزعبي',
+      dateOfBirth: new Date('2019-02-09'),
+      gender: Gender.MALE,
+      relationship: 'son',
+      bloodType: 'O+',
+      allergies: ['Dust mites'],
+      conditions: ['Mild eczema'],
+    },
+  });
+
+  // Prescription from Dr. Rania (OB/GYN)
+  const rania = doctors.find((d) => d.nameEn === 'Dr. Rania Darwish');
+  if (rania) {
+    await prisma.prescription.deleteMany({ where: { patientId: mona.id } });
+
+    const dayMs = 24 * 60 * 60 * 1000;
+    await prisma.prescription.create({
+      data: {
+        patientId: mona.id,
+        doctorUserId: rania.userId,
+        doctorId: rania.id,
+        issuedAt: new Date(Date.now() - 3 * dayMs),
+        expiresAt: new Date(Date.now() + 87 * dayMs),
+        status: PrescriptionStatus.ACTIVE,
+        notes: 'Prenatal care — routine supplementation',
+        items: {
+          create: [
+            {
+              medicationName: 'Folic Acid',
+              dose: '5mg',
+              frequency: 'Once daily',
+              durationDays: 90,
+              instructionsAr: 'صباحاً على الريق',
+              instructionsEn: 'Morning on an empty stomach',
+            },
+            {
+              medicationName: 'Ferrous Sulfate',
+              dose: '325mg',
+              frequency: 'Once daily with vitamin C',
+              durationDays: 90,
+              instructionsAr: 'مع عصير برتقال لزيادة الامتصاص',
+              instructionsEn: 'Take with orange juice for absorption',
+            },
+            {
+              medicationName: 'Vitamin D3',
+              dose: '1000 IU',
+              frequency: 'Once daily',
+              durationDays: 90,
+              instructionsAr: 'مع وجبة الغداء',
+              instructionsEn: 'With lunch',
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  console.log(`  → ${MONA_EMAIL} / ${MONA_PASSWORD} (2 children, 1 prescription)`);
 }
 
 async function main() {
@@ -1144,6 +1315,7 @@ async function main() {
   await seedDemoUser(hospitals);
   const doctors = await seedDoctors(hospitals);
   await seedDefaultThread(DEMO_EMAIL, doctors);
+  await seedMona(doctors);
   console.log('Seed complete.');
 }
 
