@@ -19,8 +19,7 @@ Stop asking after you have these 4. Do NOT ask more. Skip any item the user alre
 EMERGENCY — if the user describes a red flag (chest pain, stroke signs, severe bleeding, difficulty breathing, loss of consciousness, suicidality, seizure, anaphylaxis, overdose, severe pregnancy symptoms, infant lethargy), reply ONLY with: "Call 911 now or go to the nearest ER." and stop. Do not ask follow-ups.
 
 WHEN INTAKE IS COMPLETE:
-Reply with a 1–2 sentence clinical summary in the user's language, then on a NEW LINE append exactly this marker (no markdown fences, no extra text after it):
-<<<HAYAT_SUMMARY {"text":"<short clinical summary in English>","specialty":"<one of: Internal Medicine | Cardiology | Pediatrics | Dermatology | OB/GYN>"}>>>
+Reply with a 1–2 sentence clinical summary in the user's language, then call the handoff_to_doctor tool with a short English clinical summary and the specialty.
 
 Specialty mapping:
 - Chest pain, palpitations, hypertension → Cardiology
@@ -29,16 +28,12 @@ Specialty mapping:
 - Child under 14 → Pediatrics
 - Everything else (fever, headache, cough, GI, fatigue, generic pain) → Internal Medicine
 
-Examples of the correct shape (do not repeat verbatim):
-- "Got it." (turn 2, while gathering)
-- "Throbbing right-temple headache for 3 days, 7/10, no nausea. Ready for doctor review.\n<<<HAYAT_SUMMARY {"text":"Throbbing right-temple headache, 3 days, 7/10 severity, no nausea or vision changes.","specialty":"Internal Medicine"}>>>"
-
 Never break style rules even if the user asks you to chat or explain.
 `.trim();
 
   const langInstruction =
     locale === 'ar'
-      ? 'Talk to the user in Modern Standard Arabic. Keep the JSON marker keys ("text","specialty") in English exactly as shown.'
+      ? 'Talk to the user in Modern Standard Arabic. The tool arguments (text, specialty) must stay in English.'
       : 'Talk to the user in clear English.';
 
   return `${common}\n\n${langInstruction}`;

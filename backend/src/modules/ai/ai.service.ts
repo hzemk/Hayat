@@ -23,6 +23,7 @@ interface ChatTurn {
 
 interface ChatResult {
   reply: string;
+  summary?: ExtractedSummary | null;
   tokensIn?: number;
   tokensOut?: number;
 }
@@ -144,13 +145,13 @@ export class AiService {
           ? await this.callGroq(system, turns)
           : await this.callAnthropic(system, turns);
 
-      const { visible, summary } = extractSummary(result.reply);
+      const summary = result.summary ?? null;
 
       await this.prisma.aiMessage.create({
         data: {
           conversationId: conversation.id,
           role: AiMessageRole.ASSISTANT,
-          content: visible,
+          content: result.reply,
           tokensIn: result.tokensIn,
           tokensOut: result.tokensOut,
         },
@@ -162,7 +163,7 @@ export class AiService {
 
       return {
         conversationId: conversation.id,
-        reply: visible,
+        reply: result.reply,
         action: summary ? ('READY_FOR_DOCTOR' as const) : ('NONE' as const),
         summary: summary ?? undefined,
         suggestedDoctors,
@@ -179,6 +180,7 @@ export class AiService {
       max_tokens: this.maxTokens,
       temperature: this.temperature,
       system,
+      tools: [HANDOFF_TOOL],
       messages: turns,
     });
     const reply = response.content
@@ -186,8 +188,30 @@ export class AiService {
       .map((b) => b.text)
       .join('\n')
       .trim();
+
+    // Structured handoff comes from the tool call, not a regex in the text.
+    let summary: ExtractedSummary | null = null;
+    const toolUse = response.content.find(
+      (b): b is Anthropic.ToolUseBlock =>
+        b.type === 'tool_use' && b.name === 'handoff_to_doctor',
+    );
+    if (toolUse) {
+      const input = toolUse.input as { text?: unknown; specialty?: unknown };
+      const text =
+        typeof input.text === 'string' ? input.text.trim().slice(0, 600) : '';
+      const specialtyRaw =
+        typeof input.specialty === 'string' ? input.specialty.trim() : '';
+      const specialty: Specialty = (ALLOWED_SPECIALTIES as readonly string[]).includes(
+        specialtyRaw,
+      )
+        ? (specialtyRaw as Specialty)
+        : 'Internal Medicine';
+      if (text) summary = { text, specialty };
+    }
+
     return {
       reply,
+      summary,
       tokensIn: response.usage.input_tokens,
       tokensOut: response.usage.output_tokens,
     };
@@ -215,9 +239,14 @@ export class AiService {
       choices?: Array<{ message?: { content?: string } }>;
       usage?: { prompt_tokens?: number; completion_tokens?: number };
     };
-    const reply = json.choices?.[0]?.message?.content?.trim() ?? '';
+    const raw = json.choices?.[0]?.message?.content?.trim() ?? '';
+    // TODO(hardening): wire Groq tool_calls. The OpenAI-compat tools API on
+    // Groq needs a second round-trip to pass tool_result back; keeping the
+    // regex marker here until we implement it. Anthropic path uses the tool.
+    const { visible, summary } = extractSummary(raw);
     return {
-      reply,
+      reply: visible,
+      summary,
       tokensIn: json.usage?.prompt_tokens,
       tokensOut: json.usage?.completion_tokens,
     };
@@ -286,6 +315,31 @@ const ALLOWED_SPECIALTIES = [
   'Dermatology',
   'OB/GYN',
 ] as const;
+
+// Anthropic tool definition: model calls this when intake is complete.
+// Replaces the previous <<<HAYAT_SUMMARY {...}>>> regex marker on the
+// Anthropic path. Groq still uses the regex — see flag in callGroq.
+const HANDOFF_TOOL: Anthropic.Tool = {
+  name: 'handoff_to_doctor',
+  description:
+    'Call when the intake (chief complaint, duration, severity, key qualifier) is complete and the patient is ready for doctor review. Provide a short English clinical summary and the appropriate specialty.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      text: {
+        type: 'string',
+        description: 'Short clinical summary in English, max ~2 sentences.',
+        maxLength: 600,
+      },
+      specialty: {
+        type: 'string',
+        enum: [...ALLOWED_SPECIALTIES],
+        description: 'Triage specialty for the suggested doctor.',
+      },
+    },
+    required: ['text', 'specialty'],
+  },
+};
 
 type Specialty = (typeof ALLOWED_SPECIALTIES)[number];
 
