@@ -117,11 +117,12 @@ export class AiService {
       return { conversationId: conversation.id, reply: fallback, action: 'NONE' as const };
     }
 
-    const history = await this.prisma.aiMessage.findMany({
+    const recent = await this.prisma.aiMessage.findMany({
       where: { conversationId: conversation.id },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       take: 20,
     });
+    const history = recent.reverse();
     const turns: ChatTurn[] = history.map((m) => ({
       role: m.role === AiMessageRole.ASSISTANT ? 'assistant' : 'user',
       content: m.content,
