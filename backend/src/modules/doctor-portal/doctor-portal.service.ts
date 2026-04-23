@@ -15,6 +15,7 @@ import { PushService } from '@modules/push/push.service';
 import { DoctorSendMessageDto } from './dto/doctor-send-message.dto';
 import { IssuePrescriptionDto } from './dto/issue-prescription.dto';
 import { CreateDoctorReminderDto } from './dto/create-doctor-reminder.dto';
+import { AuditService } from '@common/audit/audit.service';
 import { buildPrescriptionReminders } from './rx-reminders';
 
 @Injectable()
@@ -22,6 +23,7 @@ export class DoctorPortalService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly push: PushService,
+    private readonly audit: AuditService,
   ) {}
 
   async getMyDoctorProfile(userId: string) {
@@ -321,6 +323,19 @@ export class DoctorPortalService {
     await this.prisma.doctorThread.update({
       where: { id: thread.id },
       data: { lastMessageAt: new Date() },
+    });
+
+    void this.audit.record({
+      userId,
+      action: 'prescription.issue',
+      resource: 'Prescription',
+      resourceId: prescription.id,
+      metadata: {
+        source: 'DOCTOR',
+        patientId: dto.patientId,
+        doctorId: doctor.id,
+        itemCount: prescription.items.length,
+      },
     });
 
     void this.push

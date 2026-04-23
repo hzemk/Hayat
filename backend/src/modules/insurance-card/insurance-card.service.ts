@@ -10,6 +10,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '@prisma-db/prisma.service';
+import { AuditService } from '@common/audit/audit.service';
 import {
   fetchSanadInsuranceCard,
   SanadInsuranceCard,
@@ -33,7 +34,10 @@ export type UpsertInsuranceCardInput = {
 
 @Injectable()
 export class InsuranceCardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async getMine(userId: string) {
     const card = await this.prisma.insuranceCard.findUnique({
@@ -93,7 +97,11 @@ export class InsuranceCardService {
       issuedByHospitalId: input.issuedByHospitalId ?? null,
     };
     try {
-      return await this.prisma.insuranceCard.upsert({
+      const existing = await this.prisma.insuranceCard.findUnique({
+        where: { userId: input.userId },
+        select: { id: true },
+      });
+      const card = await this.prisma.insuranceCard.upsert({
         where: { userId: input.userId },
         create: { userId: input.userId, ...data },
         update: data,
@@ -103,6 +111,18 @@ export class InsuranceCardService {
           },
         },
       });
+      void this.audit.record({
+        userId: input.userId,
+        action: existing ? 'insuranceCard.update' : 'insuranceCard.create',
+        resource: 'InsuranceCard',
+        resourceId: card.id,
+        metadata: {
+          source: input.source,
+          coverageType: input.coverageType,
+          coverageScope: input.coverageScope,
+        },
+      });
+      return card;
     } catch (err) {
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&

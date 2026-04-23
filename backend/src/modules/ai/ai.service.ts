@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { AiMessageRole } from '@prisma/client';
 import { PrismaService } from '@prisma-db/prisma.service';
+import { AuditService } from '@common/audit/audit.service';
 import { ChatDto } from './dto/chat.dto';
 import { detectRedFlag } from './safety/red-flags';
 import { buildSystemPrompt } from './safety/system-prompt';
@@ -39,6 +40,7 @@ export class AiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly audit: AuditService,
   ) {
     const anthropicKey = this.config.get<string>('ai.apiKey');
     this.anthropic = anthropicKey ? new Anthropic({ apiKey: anthropicKey }) : null;
@@ -92,6 +94,13 @@ export class AiService {
           data: { escalated: true, updatedAt: new Date() },
         }),
       ]);
+      void this.audit.record({
+        userId,
+        action: 'ai.conversation.escalate',
+        resource: 'AiConversation',
+        resourceId: conversation.id,
+        metadata: { category: redFlag.category, locale },
+      });
       return {
         conversationId: conversation.id,
         reply: advice,

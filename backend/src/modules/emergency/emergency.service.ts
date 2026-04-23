@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@prisma-db/prisma.service';
 import { PushService } from '@modules/push/push.service';
+import { AuditService } from '@common/audit/audit.service';
 import { CreateEmergencyDto } from './dto/create-emergency.dto';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class EmergencyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly push: PushService,
+    private readonly audit: AuditService,
   ) {}
 
   async request(userId: string, dto: CreateEmergencyDto) {
@@ -29,6 +31,18 @@ export class EmergencyService {
     this.logger.warn(
       `EMERGENCY user=${userId} lat=${dto.latitude} lng=${dto.longitude} hospital=${nearest?.nameEn ?? 'none'}`,
     );
+
+    void this.audit.record({
+      userId,
+      action: 'emergency.create',
+      resource: 'EmergencyRequest',
+      resourceId: request.id,
+      metadata: {
+        hospitalId: nearest?.id ?? null,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+      },
+    });
 
     // Patient gets a confirmation so they see the system responded.
     void this.push.sendToUser(userId, {

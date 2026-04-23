@@ -10,6 +10,7 @@ import { AuthProvider, User, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '@prisma-db/prisma.service';
 import { InsuranceCardService } from '@modules/insurance-card/insurance-card.service';
+import { AuditService } from '@common/audit/audit.service';
 import { TokensService } from './tokens.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -40,6 +41,7 @@ export class AuthService {
     private readonly tokens: TokensService,
     private readonly insuranceCard: InsuranceCardService,
     private readonly config: ConfigService,
+    private readonly audit: AuditService,
   ) {}
 
   private get demoRolesEnabled(): boolean {
@@ -225,26 +227,46 @@ export class AuthService {
 
   private async promoteIfDoctorEmail(user: User): Promise<User> {
     if (!this.demoRolesEnabled || !isDoctorEmail(user.email)) return user;
+    const previousRole = user.role;
     const updated =
-      user.role === UserRole.DOCTOR
+      previousRole === UserRole.DOCTOR
         ? user
         : await this.prisma.user.update({
             where: { id: user.id },
             data: { role: UserRole.DOCTOR },
           });
+    if (previousRole !== UserRole.DOCTOR) {
+      void this.audit.record({
+        userId: updated.id,
+        action: 'user.role.change',
+        resource: 'User',
+        resourceId: updated.id,
+        metadata: { from: previousRole, to: UserRole.DOCTOR, reason: 'email-prefix:dr.' },
+      });
+    }
     await this.ensureDoctorProfile(updated.id);
     return updated;
   }
 
   private async promoteIfHospitalEmail(user: User): Promise<User> {
     if (!this.demoRolesEnabled || !isHospitalEmail(user.email)) return user;
+    const previousRole = user.role;
     const updated =
-      user.role === UserRole.HOSPITAL_ADMIN
+      previousRole === UserRole.HOSPITAL_ADMIN
         ? user
         : await this.prisma.user.update({
             where: { id: user.id },
             data: { role: UserRole.HOSPITAL_ADMIN },
           });
+    if (previousRole !== UserRole.HOSPITAL_ADMIN) {
+      void this.audit.record({
+        userId: updated.id,
+        action: 'user.role.change',
+        resource: 'User',
+        resourceId: updated.id,
+        metadata: { from: previousRole, to: UserRole.HOSPITAL_ADMIN, reason: 'email-prefix:hosp.' },
+      });
+    }
     return this.ensureHospitalLink(updated.id);
   }
 

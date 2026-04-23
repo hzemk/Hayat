@@ -9,6 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaService } from '@prisma-db/prisma.service';
+import { AuditService } from '@common/audit/audit.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { ScanPrescriptionDto } from './dto/scan-prescription.dto';
 
@@ -62,6 +63,7 @@ export class PrescriptionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly audit: AuditService,
   ) {
     const anthropicKey = this.config.get<string>('ai.apiKey');
     this.anthropic = anthropicKey ? new Anthropic({ apiKey: anthropicKey }) : null;
@@ -180,6 +182,13 @@ export class PrescriptionsService {
         items: true,
         doctorUser: { select: { fullName: true } },
       },
+    });
+    void this.audit.record({
+      userId,
+      action: 'prescription.issue',
+      resource: 'Prescription',
+      resourceId: rx.id,
+      metadata: { source: 'SCAN', itemCount: rx.items.length },
     });
     return withSource(rx);
   }
