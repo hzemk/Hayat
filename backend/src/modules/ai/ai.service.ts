@@ -160,8 +160,7 @@ export class AiService {
       };
     } catch (err) {
       this.logger.error(`AI assistant call failed (${provider})`, err as Error);
-      const msg = err instanceof Error ? err.message : 'AI assistant unavailable';
-      throw new ServiceUnavailableException(msg.slice(0, 300));
+      throw new ServiceUnavailableException('AI assistant unavailable');
     }
   }
 
