@@ -32,7 +32,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
       load: [configuration],
       validate: validateEnv,
     }),
-    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 60 }]),
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     PrismaModule,
     PushModule,
     AuthModule,

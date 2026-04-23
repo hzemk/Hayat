@@ -8,7 +8,7 @@ import { CurrentUser } from '@common/decorators/current-user.decorator';
 export class EmergencyController {
   constructor(private readonly emergency: EmergencyService) {}
 
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('request')
   request(
     @CurrentUser('userId') userId: string,

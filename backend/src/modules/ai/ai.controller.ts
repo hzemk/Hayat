@@ -8,7 +8,7 @@ import { CurrentUser } from '@common/decorators/current-user.decorator';
 export class AiController {
   constructor(private readonly ai: AiService) {}
 
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Throttle({ default: { limit: 20, ttl: 3_600_000 } })
   @Post('chat')
   chat(@CurrentUser('userId') userId: string, @Body() dto: ChatDto) {
     return this.ai.chat(userId, dto);
