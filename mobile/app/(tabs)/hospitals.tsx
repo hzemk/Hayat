@@ -109,7 +109,7 @@ export default function HospitalsScreen() {
                 <Text
                   style={[
                     styles.chipText,
-                    active && { color: '#fff' },
+                    active && { color: colors.brand.on },
                   ]}
                 >
                   {f.label}
@@ -248,7 +248,7 @@ function HospitalCard({
                 params: { hospitalId: hospital.id },
               })
             }
-            rightIcon={<Ionicons name="arrow-forward" size={16} color="#fff" />}
+            rightIcon={<Ionicons name="arrow-forward" size={16} color={colors.brand.on} />}
           />
         </View>
       </View>

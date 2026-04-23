@@ -5,10 +5,21 @@ export const lightColors = {
     primaryLight: '#2DD4BF',
     accent: '#E63946',
     gradient: ['#2DD4BF', '#14B8A6', '#0D9488'] as readonly [string, string, string],
+    // Chrome for elements on the brand gradient (always saturated, same
+    // values in light and dark).
+    overlay: 'rgba(255,255,255,0.22)',
+    overlayStrong: 'rgba(255,255,255,0.32)',
+    onMuted: 'rgba(255,255,255,0.85)',
+    // Text / icon on solid brand-colored surfaces — always white.
+    on: '#FFFFFF',
+    // Jordan's Sanad digital-ID brand colors — not theme-contextual.
+    sanad: { bg: '#000000', fg: '#FFFFFF' },
   },
   emergency: {
     base: '#DC2626',
     pressed: '#991B1B',
+    // Text / icon color on emergency-red surfaces — always white.
+    on: '#FFFFFF',
   },
   text: {
     primary: '#0F172A',
@@ -47,10 +58,16 @@ export const darkColors: typeof lightColors = {
     primaryLight: '#5EEAD4',
     accent: '#F87171',
     gradient: ['#5EEAD4', '#22D3EE', '#0EA5E9'] as readonly [string, string, string],
+    overlay: 'rgba(255,255,255,0.22)',
+    overlayStrong: 'rgba(255,255,255,0.32)',
+    onMuted: 'rgba(255,255,255,0.85)',
+    on: '#FFFFFF',
+    sanad: { bg: '#000000', fg: '#FFFFFF' },
   },
   emergency: {
     base: '#EF4444',
     pressed: '#DC2626',
+    on: '#FFFFFF',
   },
   text: {
     primary: '#F1F5F9',
