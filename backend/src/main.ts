@@ -14,18 +14,37 @@ async function bootstrap() {
   app.use(compression());
   app.use(json({ limit: '12mb' }));
   app.use(urlencoded({ extended: true, limit: '12mb' }));
-  const originSetting = config.get<string>('app.origin') ?? '*';
+  const nodeEnv = process.env.NODE_ENV ?? 'development';
+  const isDev = nodeEnv === 'development';
+  const isProd = nodeEnv === 'production';
+  const originSetting = config.get<string>('app.origin') ?? '';
   const allowList = originSetting
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
+
+  // Production must have an explicit allowlist. credentials:true combined
+  // with origin:'*' is rejected by browsers and is also a cross-site risk.
+  if (isProd) {
+    if (allowList.length === 0) {
+      throw new Error(
+        'CORS: APP_ORIGIN is required in production — set a comma-separated allowlist of exact origins',
+      );
+    }
+    if (allowList.includes('*')) {
+      throw new Error(
+        'CORS: APP_ORIGIN="*" is not allowed in production with credentials:true — set explicit origins',
+      );
+    }
+  }
+
   app.enableCors({
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
       if (allowList.includes('*')) return cb(null, true);
       if (allowList.includes(origin)) return cb(null, true);
       if (
-        process.env.NODE_ENV !== 'production' &&
+        isDev &&
         /^https?:\/\/(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(
           origin,
         )
