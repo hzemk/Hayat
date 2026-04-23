@@ -11,7 +11,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -194,16 +193,6 @@ export default function LoginScreen() {
             />
           )}
 
-          {role === null ? (
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>{t('auth.noAccount')} </Text>
-              <Link href="/(auth)/register" asChild>
-                <Pressable hitSlop={8}>
-                  <Text style={styles.footerLink}>{t('auth.signUp')}</Text>
-                </Pressable>
-              </Link>
-            </View>
-          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -646,21 +635,6 @@ function useStyles(colors: AppColors) {
           alignSelf: 'flex-start',
         },
         backText: {
-          color: colors.brand.primary,
-          fontWeight: typography.weight.semibold,
-          fontSize: typography.size.sm,
-        },
-        footer: {
-          flexDirection: 'row',
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginTop: spacing.xl,
-        },
-        footerText: {
-          color: colors.text.secondary,
-          fontSize: typography.size.sm,
-        },
-        footerLink: {
           color: colors.brand.primary,
           fontWeight: typography.weight.semibold,
           fontSize: typography.size.sm,
