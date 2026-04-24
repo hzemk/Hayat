@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { GradientHeader } from '@components/GradientHeader';
@@ -218,7 +219,16 @@ function RxRow({
   });
 
   return (
-    <Card padding="md" style={{ gap: spacing.xs }}>
+    <Card
+      padding="md"
+      style={{ gap: spacing.xs }}
+      onPress={() =>
+        router.push({
+          pathname: '/(doctor)/rx/edit/[rxId]',
+          params: { rxId: rx.id },
+        })
+      }
+    >
       <View style={styles.rowTop}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>

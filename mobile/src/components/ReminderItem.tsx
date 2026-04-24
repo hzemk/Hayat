@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ListItem } from '@components/ListItem';
 import { Reminder, ReminderType } from '@services/api/reminders.api';
@@ -86,6 +87,12 @@ export function ReminderItem({
         tint={typeTint(reminder.type)}
         title={reminder.title}
         subtitle={subtitle}
+        onPress={() =>
+          router.push({
+            pathname: '/reminders/[id]',
+            params: { id: reminder.id },
+          })
+        }
         trailing={
           finished ? (
             <View style={styles.finishedBadge}>

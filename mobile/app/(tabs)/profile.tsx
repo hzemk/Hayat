@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import {
-  Alert,
+  DevSettings,
   I18nManager,
   Linking,
   Pressable,
@@ -69,12 +69,8 @@ export default function ProfileScreen() {
     } catch {
       // non-fatal
     }
-    if (directionWillFlip) {
-      Alert.alert(
-        t('profile.languageChanged'),
-        t('profile.restartForRtl'),
-        [{ text: t('common.done') }],
-      );
+    if (directionWillFlip && typeof DevSettings?.reload === 'function') {
+      setTimeout(() => DevSettings.reload(), 150);
     }
   }
 

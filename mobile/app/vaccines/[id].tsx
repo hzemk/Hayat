@@ -1,50 +1,43 @@
 import { useMemo } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import QRCode from 'react-native-qrcode-svg';
 import { GradientHeader } from '@components/GradientHeader';
 import { Card } from '@components/Card';
-import { Button } from '@components/Button';
-import { useAuthStore } from '@stores/auth';
 import {
-  deleteVaccination,
-  listVaccinations,
+  createVaccineShareToken,
+  getVaccination,
+  vaccineShareUrl,
   Vaccination,
 } from '@services/api/vaccinations.api';
-import { apiErrorMessage } from '@services/api/errors';
 import { AppColors, radius, shadow, spacing, typography, useTheme } from '@theme/index';
 
 export default function VaccineDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const vaccineId = String(id);
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'ar' ? 'ar-JO' : 'en-GB';
-  const user = useAuthStore((s) => s.user);
-  const queryClient = useQueryClient();
+  const isAr = i18n.language === 'ar';
   const { colors } = useTheme();
   const styles = useStyles(colors);
 
-  const { data: vaccinations } = useQuery({
-    queryKey: ['vaccinations'],
-    queryFn: listVaccinations,
+  const { data: vaccine } = useQuery<Vaccination>({
+    queryKey: ['vaccination', vaccineId],
+    queryFn: () => getVaccination(vaccineId),
+    enabled: Boolean(vaccineId),
   });
 
-  const vaccine: Vaccination | undefined = useMemo(
-    () => vaccinations?.find((v) => v.id === id),
-    [vaccinations, id],
-  );
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteVaccination,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vaccinations'] });
-      router.back();
-    },
-    onError: (err) => {
-      Alert.alert(t('common.error') || 'Error', apiErrorMessage(err));
-    },
+  // Short-lived (24h) URL the QR encodes — points to a public HTML cert
+  // that paramedics / airport health desks can read in any browser.
+  const { data: shareToken } = useQuery({
+    queryKey: ['vaccine-share-token', vaccineId],
+    queryFn: () => createVaccineShareToken(vaccineId),
+    enabled: Boolean(vaccineId),
+    staleTime: 12 * 60 * 60 * 1000,
+    refetchInterval: 12 * 60 * 60 * 1000,
   });
 
   if (!vaccine) {
@@ -65,21 +58,12 @@ export default function VaccineDetail() {
     );
   }
 
-  const passportPayload = {
-    v: 1,
-    holder: user?.fullName ?? '',
-    vaccine: vaccine.name,
-    manufacturer: vaccine.manufacturer,
-    dose: vaccine.doseNumber,
-    of: vaccine.totalDoses,
-    given: vaccine.dateGiven,
-    expires: vaccine.expiresAt,
-    batch: vaccine.batchNumber,
-    by: vaccine.administeredBy,
-    at: vaccine.administeredAt,
-    cert: vaccine.certificateNumber,
-  };
-  const qrValue = JSON.stringify(passportPayload);
+  // Until the share token arrives, encode the eventual URL skeleton so the
+  // QR isn't blank. Once the real token loads, the QR re-renders with the
+  // signed URL automatically.
+  const qrValue = shareToken
+    ? vaccineShareUrl(shareToken.path)
+    : 'https://hayat.app';
 
   const formatDate = (iso: string | null) =>
     iso
@@ -90,20 +74,22 @@ export default function VaccineDetail() {
         })
       : '—';
 
-  function onDelete() {
-    Alert.alert(
-      t('common.confirm') || 'Confirm',
-      t('vaccines.deleteConfirm') || 'Delete this vaccination record?',
-      [
-        { text: t('common.no') || 'No', style: 'cancel' },
-        {
-          text: t('common.yes') || 'Yes',
-          style: 'destructive',
-          onPress: () => deleteMutation.mutate(vaccine!.id),
-        },
-      ],
-    );
-  }
+  const doctorName =
+    vaccine.administeredByDoctor?.user.fullName ??
+    vaccine.administeredByDoctor?.user.email ??
+    null;
+  const doctorSpecialty = vaccine.administeredByDoctor
+    ? isAr
+      ? (vaccine.administeredByDoctor.specialtyAr ??
+        vaccine.administeredByDoctor.specialty)
+      : vaccine.administeredByDoctor.specialty
+    : null;
+  const hospitalName = vaccine.administeredAtHospital
+    ? isAr
+      ? vaccine.administeredAtHospital.nameAr
+      : vaccine.administeredAtHospital.nameEn
+    : (vaccine.administeredAt ?? null);
+  const hospitalCity = vaccine.administeredAtHospital?.city ?? null;
 
   return (
     <ScrollView
@@ -178,26 +164,6 @@ export default function VaccineDetail() {
               />
             </>
           ) : null}
-          {vaccine.administeredBy ? (
-            <>
-              <Divider />
-              <DetailRow
-                label={t('vaccines.administeredBy') || 'Administered by'}
-                value={vaccine.administeredBy}
-                icon="business-outline"
-              />
-            </>
-          ) : null}
-          {vaccine.administeredAt ? (
-            <>
-              <Divider />
-              <DetailRow
-                label={t('vaccines.administeredAt') || 'Location'}
-                value={vaccine.administeredAt}
-                icon="location-outline"
-              />
-            </>
-          ) : null}
           {vaccine.certificateNumber ? (
             <>
               <Divider />
@@ -210,12 +176,50 @@ export default function VaccineDetail() {
           ) : null}
         </Card>
 
-        <Button
-          label={t('vaccines.delete') || 'Delete'}
-          variant="danger"
-          onPress={onDelete}
-          loading={deleteMutation.isPending}
-        />
+        {doctorName || hospitalName ? (
+          <Card>
+            <Text style={styles.sectionLabel}>
+              {t('vaccines.administeredSection') || 'Administered by'}
+            </Text>
+            {doctorName ? (
+              <View style={styles.providerRow}>
+                <View style={styles.providerIcon}>
+                  <Ionicons
+                    name="medkit"
+                    size={18}
+                    color={colors.brand.primary}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.providerName}>{doctorName}</Text>
+                  {doctorSpecialty ? (
+                    <Text style={styles.providerMeta}>{doctorSpecialty}</Text>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
+            {hospitalName ? (
+              <>
+                {doctorName ? <Divider /> : null}
+                <View style={styles.providerRow}>
+                  <View style={styles.providerIcon}>
+                    <Ionicons
+                      name="business"
+                      size={18}
+                      color={colors.brand.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.providerName}>{hospitalName}</Text>
+                    {hospitalCity ? (
+                      <Text style={styles.providerMeta}>{hospitalCity}</Text>
+                    ) : null}
+                  </View>
+                </View>
+              </>
+            ) : null}
+          </Card>
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -331,6 +335,38 @@ function useStyles(colors: AppColors) {
     height: 1,
     backgroundColor: colors.surface.border,
     marginVertical: spacing.xs,
+  },
+  sectionLabel: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: spacing.sm,
+  },
+  providerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  providerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.tint.teal.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  providerName: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    color: colors.text.primary,
+  },
+  providerMeta: {
+    fontSize: typography.size.xs,
+    color: colors.text.secondary,
+    marginTop: 2,
   },
 }), [colors]);
 }

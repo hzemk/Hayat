@@ -198,7 +198,17 @@
     "fromPrescription": "From prescription",
     "fromDoctorTitle": "Added by your doctor",
     "fromDoctorMessage": "Reminders are managed by your doctor and can't be removed from here.",
-    "emptyTodayDoctor": "Your doctor hasn't set any reminders for today."
+    "emptyTodayDoctor": "Your doctor hasn't set any reminders for today.",
+    "detailTitle": "Reminder",
+    "takeFrom": "Take from",
+    "takeUntil": "Until",
+    "prescribedBy": "Prescribed by",
+    "noDoctor": "Not linked to a prescription",
+    "durationMonths": "{{count}} month",
+    "durationMonths_plural": "{{count}} months",
+    "frequency": "Frequency",
+    "dose": "Dose",
+    "notes": "Notes"
   },
   "hospitals": {
     "title": "Hospitals",

@@ -62,6 +62,35 @@ export class AppointmentsService {
       throw new BadRequestException('Department does not belong to this hospital');
     }
 
+    // Reject bookings outside the department's open hours OR on closed days
+    // of the week. ER is always 24/7 and skips this check (treated as open
+    // even if openHours is missing). openHours is `DayWindow[]` — one
+    // entry per weekday (mon/tue/.../sun) with HH:MM strings, null = closed.
+    if (department.code !== 'ER') {
+      const window = openWindowFor(department.openHours, scheduledAt);
+      if (window) {
+        if (!window.open || !window.close) {
+          const dayName = WEEKDAY_NAMES_LONG[scheduledAt.getDay()];
+          throw new BadRequestException(
+            `This department is closed on ${dayName}. Pick another day or choose Emergency (ER) for 24/7 care.`,
+          );
+        }
+        const minutes = scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
+        const openMin = parseHHMM(window.open);
+        const closeMin = parseHHMM(window.close);
+        if (
+          openMin === null ||
+          closeMin === null ||
+          minutes < openMin ||
+          minutes >= closeMin
+        ) {
+          throw new BadRequestException(
+            `This department is only open ${window.open}–${window.close}. Pick a time inside that window or choose Emergency (ER) for 24/7 care.`,
+          );
+        }
+      }
+    }
+
     if (dto.doctorId) {
       const doctor = await this.prisma.doctor.findUnique({
         where: { id: dto.doctorId },
@@ -138,4 +167,47 @@ export class AppointmentsService {
 
     return updated;
   }
+}
+
+// JS Date.getDay(): Sunday=0, Monday=1, ..., Saturday=6. Maps to the same
+// 3-letter codes the hospital admin portal uses.
+const WEEKDAY_CODES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+const WEEKDAY_NAMES_LONG = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+interface DayWindow {
+  day: string; // 'mon' | 'tue' | ... | 'sun'
+  open: string | null; // 'HH:MM'
+  close: string | null;
+}
+
+// Department.openHours is `Json?` and stored as `DayWindow[]` by the hospital
+// admin portal. Returns the entry matching `at`'s weekday, or null if the
+// stored value isn't an array (legacy/missing → caller treats as always
+// open, except ER which short-circuits earlier).
+function openWindowFor(value: unknown, at: Date): DayWindow | null {
+  if (!Array.isArray(value)) return null;
+  const code = WEEKDAY_CODES[at.getDay()];
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue;
+    const obj = entry as { day?: unknown; open?: unknown; close?: unknown };
+    if (obj.day !== code) continue;
+    const open = typeof obj.open === 'string' ? obj.open : null;
+    const close = typeof obj.close === 'string' ? obj.close : null;
+    return { day: code, open, close };
+  }
+  return null;
+}
+
+function parseHHMM(s: string): number | null {
+  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(s);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
 }

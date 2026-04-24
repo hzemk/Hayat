@@ -198,7 +198,17 @@
     "fromPrescription": "من وصفة طبية",
     "fromDoctorTitle": "أضافه طبيبك",
     "fromDoctorMessage": "تتم إدارة التذكيرات من قبل طبيبك ولا يمكن إزالتها من هنا.",
-    "emptyTodayDoctor": "لم يضف طبيبك أي تذكيرات لك اليوم."
+    "emptyTodayDoctor": "لم يضف طبيبك أي تذكيرات لك اليوم.",
+    "detailTitle": "تذكير",
+    "takeFrom": "البدء من",
+    "takeUntil": "حتى",
+    "prescribedBy": "الطبيب الواصف",
+    "noDoctor": "غير مرتبط بوصفة طبية",
+    "durationMonths": "{{count}} شهر",
+    "durationMonths_plural": "{{count}} أشهر",
+    "frequency": "التكرار",
+    "dose": "الجرعة",
+    "notes": "ملاحظات"
   },
   "hospitals": {
     "title": "المستشفيات",

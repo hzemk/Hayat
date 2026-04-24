@@ -14,7 +14,17 @@ export class HospitalsService {
   async list({ lat, lng, city }: ListParams) {
     const hospitals = await this.prisma.hospital.findMany({
       where: city ? { city: { equals: city, mode: 'insensitive' } } : undefined,
-      include: { departments: { select: { id: true, nameAr: true, nameEn: true, code: true } } },
+      include: {
+        departments: {
+          select: {
+            id: true,
+            nameAr: true,
+            nameEn: true,
+            code: true,
+            openHours: true,
+          },
+        },
+      },
     });
 
     if (lat === undefined || lng === undefined) return hospitals;

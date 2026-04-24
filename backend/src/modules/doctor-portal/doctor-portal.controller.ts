@@ -15,7 +15,9 @@ import { DoctorPortalService } from './doctor-portal.service';
 import { DoctorSendMessageDto } from './dto/doctor-send-message.dto';
 import { IssuePrescriptionDto } from './dto/issue-prescription.dto';
 import { CreateDoctorReminderDto } from './dto/create-doctor-reminder.dto';
+import { CreateVaccinationDto } from '@modules/vaccinations/dto/create-vaccination.dto';
 import { SetScheduleDto } from './dto/set-schedule.dto';
+import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Roles } from '@common/decorators/roles.decorator';
 import { RolesGuard } from '@common/guards/roles.guard';
@@ -101,6 +103,23 @@ export class DoctorPortalController {
     return this.service.listIssued(userId);
   }
 
+  @Get('prescriptions/:rxId')
+  getIssued(
+    @CurrentUser('userId') userId: string,
+    @Param('rxId') rxId: string,
+  ) {
+    return this.service.getIssuedPrescription(userId, rxId);
+  }
+
+  @Patch('prescriptions/:rxId')
+  updateIssued(
+    @CurrentUser('userId') userId: string,
+    @Param('rxId') rxId: string,
+    @Body() dto: UpdatePrescriptionDto,
+  ) {
+    return this.service.updateIssuedPrescription(userId, rxId, dto);
+  }
+
   @Get('patients/:patientId/reminders')
   listPatientReminders(
     @CurrentUser('userId') userId: string,
@@ -127,5 +146,52 @@ export class DoctorPortalController {
     @Param('reminderId') reminderId: string,
   ) {
     return this.service.deletePatientReminder(userId, patientId, reminderId);
+  }
+
+  @Post('patients/:patientId/vaccinations')
+  @HttpCode(201)
+  issueVaccination(
+    @CurrentUser('userId') userId: string,
+    @Param('patientId') patientId: string,
+    @Body() dto: CreateVaccinationDto,
+  ) {
+    return this.service.issuePatientVaccination(userId, patientId, dto);
+  }
+
+  @Get('patients/:patientId/vaccinations')
+  listPatientVaccinations(
+    @CurrentUser('userId') userId: string,
+    @Param('patientId') patientId: string,
+  ) {
+    return this.service.listPatientVaccinations(userId, patientId);
+  }
+
+  @Delete('patients/:patientId/vaccinations/:vaccinationId')
+  @HttpCode(204)
+  deletePatientVaccination(
+    @CurrentUser('userId') userId: string,
+    @Param('patientId') patientId: string,
+    @Param('vaccinationId') vaccinationId: string,
+  ) {
+    return this.service.deletePatientVaccination(
+      userId,
+      patientId,
+      vaccinationId,
+    );
+  }
+
+  @Patch('patients/:patientId/vaccinations/:vaccinationId')
+  updatePatientVaccination(
+    @CurrentUser('userId') userId: string,
+    @Param('patientId') patientId: string,
+    @Param('vaccinationId') vaccinationId: string,
+    @Body() dto: CreateVaccinationDto,
+  ) {
+    return this.service.updatePatientVaccination(
+      userId,
+      patientId,
+      vaccinationId,
+      dto,
+    );
   }
 }

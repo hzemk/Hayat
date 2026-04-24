@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -36,14 +35,7 @@ export default function HospitalProfileScreen() {
   const name = hospital ? (isAr ? hospital.nameAr : hospital.nameEn) : '';
 
   async function onLogout() {
-    Alert.alert(t('hospitalPortal.profile.logout'), '', [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('hospitalPortal.profile.logout'),
-        style: 'destructive',
-        onPress: () => logout(),
-      },
-    ]);
+    logout();
   }
 
   return (

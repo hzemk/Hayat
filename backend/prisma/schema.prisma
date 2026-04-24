@@ -307,11 +307,14 @@ model Reminder {
   status         ReminderStatus @default(PENDING)
   source         ReminderSource @default(MANUAL)
   completedAt    DateTime?
+  prescriptionId String?        @db.Uuid
+  prescription   Prescription?  @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   @@index([userId, scheduledAt])
   @@index([familyMemberId, scheduledAt])
+  @@index([prescriptionId])
 }
 
 model Hospital {
@@ -333,6 +336,7 @@ model Hospital {
   appointments Appointment[]
   admins       User[]      @relation("HospitalAdmins")
   insuranceCards InsuranceCard[] @relation("InsuranceIssuer")
+  administeredVaccinations Vaccination[] @relation("HospitalAdministeredVaccinations")
 
   @@index([city])
   @@index([latitude, longitude])
@@ -381,6 +385,7 @@ model Doctor {
   ratings          DoctorRating[]
   defaultForUsers  User[]      @relation("PatientDefaultDoctor")
   availability     DoctorAvailability[]
+  administeredVaccinations Vaccination[] @relation("DoctorAdministeredVaccinations")
 }
 
 model DoctorAvailability {
@@ -495,7 +500,8 @@ model Prescription {
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
-  items PrescriptionItem[]
+  items     PrescriptionItem[]
+  reminders Reminder[]
 
   @@index([patientId])
 }
@@ -562,24 +568,30 @@ model AiMessage {
 }
 
 model Vaccination {
-  id               String    @id @default(uuid()) @db.Uuid
-  userId           String    @db.Uuid
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name             String
-  manufacturer     String?
-  doseNumber       Int?
-  totalDoses       Int?
-  dateGiven        DateTime  @db.Date
-  expiresAt        DateTime? @db.Date
-  batchNumber      String?
-  administeredBy   String?
-  administeredAt   String?
-  certificateNumber String?
-  notes            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                       String    @id @default(uuid()) @db.Uuid
+  userId                   String    @db.Uuid
+  user                     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                     String
+  manufacturer             String?
+  doseNumber               Int?
+  totalDoses               Int?
+  dateGiven                DateTime  @db.Date
+  expiresAt                DateTime? @db.Date
+  batchNumber              String?
+  administeredBy           String?
+  administeredAt           String?
+  administeredByDoctorId   String?   @db.Uuid
+  administeredByDoctor     Doctor?   @relation("DoctorAdministeredVaccinations", fields: [administeredByDoctorId], references: [id], onDelete: SetNull)
+  administeredAtHospitalId String?   @db.Uuid
+  administeredAtHospital   Hospital? @relation("HospitalAdministeredVaccinations", fields: [administeredAtHospitalId], references: [id], onDelete: SetNull)
+  certificateNumber        String?
+  notes                    String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   @@index([userId, dateGiven])
+  @@index([administeredByDoctorId])
+  @@index([administeredAtHospitalId])
 }
 
 model AuditLog {

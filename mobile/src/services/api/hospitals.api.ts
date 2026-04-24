@@ -1,10 +1,20 @@
 import { api } from './client';
 
+// Matches the hospital-admin portal: one window per weekday. Null open/close
+// means the department is closed that day. Times are 'HH:MM' 24h strings.
+export type WeekdayCode = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+export interface DayWindow {
+  day: WeekdayCode;
+  open: string | null;
+  close: string | null;
+}
+
 export interface Department {
   id: string;
   nameAr: string;
   nameEn: string;
   code: string;
+  openHours: DayWindow[] | null;
 }
 
 export interface Hospital {

@@ -1,5 +1,22 @@
 import { api } from './client';
 
+export interface VaccineDoctor {
+  id: string;
+  specialty: string;
+  specialtyAr: string | null;
+  photoUrl: string | null;
+  hospitalId: string | null;
+  user: { fullName: string | null; email: string };
+}
+
+export interface VaccineHospital {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  city: string;
+  phone: string | null;
+}
+
 export interface Vaccination {
   id: string;
   name: string;
@@ -11,6 +28,10 @@ export interface Vaccination {
   batchNumber: string | null;
   administeredBy: string | null;
   administeredAt: string | null;
+  administeredByDoctorId: string | null;
+  administeredAtHospitalId: string | null;
+  administeredByDoctor: VaccineDoctor | null;
+  administeredAtHospital: VaccineHospital | null;
   certificateNumber: string | null;
   notes: string | null;
   createdAt: string;
@@ -27,23 +48,24 @@ export async function getVaccination(id: string) {
   return data;
 }
 
-export async function createVaccination(payload: {
-  name: string;
-  manufacturer?: string;
-  doseNumber?: number;
-  totalDoses?: number;
-  dateGiven: string;
-  expiresAt?: string;
-  batchNumber?: string;
-  administeredBy?: string;
-  administeredAt?: string;
-  certificateNumber?: string;
-  notes?: string;
-}) {
-  const { data } = await api.post<Vaccination>('/vaccinations', payload);
+export interface VaccineShareToken {
+  token: string;
+  expiresAt: string;
+  path: string;
+}
+
+export async function createVaccineShareToken(id: string) {
+  const { data } = await api.post<VaccineShareToken>(
+    `/vaccinations/${id}/share-token`,
+  );
   return data;
 }
 
-export async function deleteVaccination(id: string) {
-  await api.delete(`/vaccinations/${id}`);
+// Builds the full public URL the QR code points to. Mirrors
+// medicalIdShareUrl: combine the API base with the relative `v/<token>` so
+// the same code works in dev (LAN IP) and prod.
+export function vaccineShareUrl(path: string): string {
+  const base = api.defaults.baseURL ?? '';
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+  return new URL(path, normalizedBase).toString();
 }

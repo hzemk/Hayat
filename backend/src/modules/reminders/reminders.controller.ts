@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { RemindersService } from './reminders.service';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 
@@ -17,5 +17,13 @@ export class RemindersController {
       return this.reminders.listUpcoming(userId, parsed);
     }
     return this.reminders.listMine(userId);
+  }
+
+  @Get(':id')
+  getOne(
+    @CurrentUser('userId') userId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.reminders.getOne(userId, id);
   }
 }

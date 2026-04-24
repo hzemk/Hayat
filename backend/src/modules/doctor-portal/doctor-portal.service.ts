@@ -15,6 +15,8 @@ import { PushService } from '@modules/push/push.service';
 import { DoctorSendMessageDto } from './dto/doctor-send-message.dto';
 import { IssuePrescriptionDto } from './dto/issue-prescription.dto';
 import { CreateDoctorReminderDto } from './dto/create-doctor-reminder.dto';
+import { CreateVaccinationDto } from '@modules/vaccinations/dto/create-vaccination.dto';
+import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { AuditService } from '@common/audit/audit.service';
 import { buildPrescriptionReminders } from './rx-reminders';
 
@@ -461,6 +463,260 @@ export class DoctorPortalService {
       );
     }
     await this.prisma.reminder.delete({ where: { id: reminderId } });
+  }
+
+  async getIssuedPrescription(userId: string, prescriptionId: string) {
+    const doctor = await this.resolveDoctor(userId);
+    const rx = await this.prisma.prescription.findUnique({
+      where: { id: prescriptionId },
+      include: {
+        items: true,
+        patient: {
+          select: { id: true, fullName: true, email: true, phoneNumber: true },
+        },
+        doctorUser: { select: { fullName: true } },
+      },
+    });
+    if (!rx) throw new NotFoundException('Prescription not found');
+    if (rx.doctorId !== doctor.id) throw new ForbiddenException();
+    return rx;
+  }
+
+  async updateIssuedPrescription(
+    userId: string,
+    prescriptionId: string,
+    dto: UpdatePrescriptionDto,
+  ) {
+    const doctor = await this.resolveDoctor(userId);
+    const existing = await this.prisma.prescription.findUnique({
+      where: { id: prescriptionId },
+      select: { id: true, doctorId: true, patientId: true },
+    });
+    if (!existing) throw new NotFoundException('Prescription not found');
+    if (existing.doctorId !== doctor.id) throw new ForbiddenException();
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (dto.items) {
+        await tx.prescriptionItem.deleteMany({
+          where: { prescriptionId: existing.id },
+        });
+        await tx.prescriptionItem.createMany({
+          data: dto.items.map((i) => ({
+            prescriptionId: existing.id,
+            medicationName: i.medicationName,
+            dose: i.dose,
+            frequency: i.frequency,
+            durationDays: i.durationDays,
+            instructionsAr: i.instructionsAr,
+            instructionsEn: i.instructionsEn,
+          })),
+        });
+      }
+      return tx.prescription.update({
+        where: { id: existing.id },
+        data: {
+          notes: dto.notes,
+          status: dto.status,
+        },
+        include: {
+          items: true,
+          patient: {
+            select: { id: true, fullName: true, email: true, phoneNumber: true },
+          },
+          doctorUser: { select: { fullName: true } },
+        },
+      });
+    });
+
+    // Regenerate prescription-sourced reminders if items changed.
+    if (dto.items) {
+      await this.prisma.reminder.deleteMany({
+        where: {
+          prescriptionId: existing.id,
+          source: ReminderSource.PRESCRIPTION,
+        },
+      });
+      try {
+        const rows = buildPrescriptionReminders(
+          existing.patientId,
+          updated.items,
+        );
+        const withRx = rows.map((r) => ({ ...r, prescriptionId: existing.id }));
+        if (withRx.length) {
+          await this.prisma.reminder.createMany({ data: withRx });
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('Failed to regenerate reminders for prescription', err);
+      }
+    }
+
+    void this.audit.record({
+      userId,
+      action: 'prescription.update',
+      resource: 'Prescription',
+      resourceId: existing.id,
+      metadata: {
+        patientId: existing.patientId,
+        doctorId: doctor.id,
+        itemCount: updated.items.length,
+        statusChanged: dto.status,
+      },
+    });
+
+    return updated;
+  }
+
+  async listPatientVaccinations(userId: string, patientId: string) {
+    const doctor = await this.resolveDoctor(userId);
+    await this.assertPatientOfDoctor(doctor.id, patientId);
+    const rows = await this.prisma.vaccination.findMany({
+      where: { userId: patientId },
+      orderBy: { dateGiven: 'desc' },
+      include: {
+        administeredByDoctor: {
+          include: { user: { select: { fullName: true } } },
+        },
+        administeredAtHospital: {
+          select: { id: true, nameAr: true, nameEn: true, city: true },
+        },
+      },
+    });
+    // Any doctor with this patient in their roster can edit/delete. The
+    // audit log keeps an irrevocable trail of who did what.
+    return rows.map((r) => ({ ...r, canDelete: true, canEdit: true }));
+  }
+
+  async deletePatientVaccination(
+    userId: string,
+    patientId: string,
+    vaccinationId: string,
+  ) {
+    const doctor = await this.resolveDoctor(userId);
+    await this.assertPatientOfDoctor(doctor.id, patientId);
+    const vx = await this.prisma.vaccination.findUnique({
+      where: { id: vaccinationId },
+      select: { id: true, userId: true, name: true },
+    });
+    if (!vx || vx.userId !== patientId) {
+      throw new NotFoundException('Vaccination not found');
+    }
+    await this.prisma.vaccination.delete({ where: { id: vaccinationId } });
+    void this.audit.record({
+      userId,
+      action: 'vaccination.delete',
+      resource: 'Vaccination',
+      resourceId: vaccinationId,
+      metadata: { patientId, doctorId: doctor.id, name: vx.name },
+    });
+  }
+
+  async updatePatientVaccination(
+    userId: string,
+    patientId: string,
+    vaccinationId: string,
+    dto: CreateVaccinationDto,
+  ) {
+    const doctor = await this.resolveDoctor(userId);
+    await this.assertPatientOfDoctor(doctor.id, patientId);
+    const vx = await this.prisma.vaccination.findUnique({
+      where: { id: vaccinationId },
+      select: { id: true, userId: true },
+    });
+    if (!vx || vx.userId !== patientId) {
+      throw new NotFoundException('Vaccination not found');
+    }
+    const updated = await this.prisma.vaccination.update({
+      where: { id: vaccinationId },
+      data: {
+        name: dto.name,
+        manufacturer: dto.manufacturer,
+        doseNumber: dto.doseNumber,
+        totalDoses: dto.totalDoses,
+        dateGiven: new Date(dto.dateGiven),
+        expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+        batchNumber: dto.batchNumber,
+        certificateNumber: dto.certificateNumber,
+        notes: dto.notes,
+      },
+      include: {
+        administeredByDoctor: {
+          include: { user: { select: { fullName: true, email: true } } },
+        },
+        administeredAtHospital: {
+          select: { id: true, nameAr: true, nameEn: true, city: true, phone: true },
+        },
+      },
+    });
+    void this.audit.record({
+      userId,
+      action: 'vaccination.update',
+      resource: 'Vaccination',
+      resourceId: vaccinationId,
+      metadata: { patientId, doctorId: doctor.id },
+    });
+    return updated;
+  }
+
+  async issuePatientVaccination(
+    userId: string,
+    patientId: string,
+    dto: CreateVaccinationDto,
+  ) {
+    const doctor = await this.resolveDoctor(userId);
+    await this.assertPatientOfDoctor(doctor.id, patientId);
+
+    const hospital = doctor.hospitalId
+      ? await this.prisma.hospital.findUnique({
+          where: { id: doctor.hospitalId },
+          select: { id: true, nameEn: true, city: true },
+        })
+      : null;
+    const doctorUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { fullName: true },
+    });
+
+    const created = await this.prisma.vaccination.create({
+      data: {
+        userId: patientId,
+        name: dto.name,
+        manufacturer: dto.manufacturer,
+        doseNumber: dto.doseNumber,
+        totalDoses: dto.totalDoses,
+        dateGiven: new Date(dto.dateGiven),
+        expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+        batchNumber: dto.batchNumber,
+        administeredBy: dto.administeredBy ?? doctorUser?.fullName ?? null,
+        administeredAt:
+          dto.administeredAt ??
+          (hospital
+            ? `${hospital.nameEn}${hospital.city ? `, ${hospital.city}` : ''}`
+            : null),
+        administeredByDoctorId: doctor.id,
+        administeredAtHospitalId: doctor.hospitalId,
+        certificateNumber: dto.certificateNumber,
+        notes: dto.notes,
+      },
+      include: {
+        administeredByDoctor: {
+          include: { user: { select: { fullName: true, email: true } } },
+        },
+        administeredAtHospital: {
+          select: { id: true, nameAr: true, nameEn: true, city: true, phone: true },
+        },
+      },
+    });
+
+    void this.audit.record({
+      userId,
+      action: 'vaccination.issue',
+      resource: 'Vaccination',
+      resourceId: created.id,
+      metadata: { patientId, name: dto.name },
+    });
+
+    return created;
   }
 
   private async resolveDoctor(userId: string) {

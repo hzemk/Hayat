@@ -1,5 +1,12 @@
 import { useMemo } from 'react';
-import { Alert, I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  DevSettings,
+  I18nManager,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@components/Card';
@@ -35,12 +42,13 @@ export function LanguagePicker() {
         // non-fatal
       }
     }
-    if (directionWillFlip) {
-      Alert.alert(
-        t('profile.languageChanged'),
-        t('profile.restartForRtl'),
-        [{ text: t('common.done') }],
-      );
+    // RTL/LTR direction flip can't be applied to live native views — auto
+    // reload the JS bundle so the new direction takes effect without the
+    // user manually killing the app. DevSettings.reload is available in
+    // Expo Go / dev builds; in a production build this branch becomes a
+    // no-op and the user can restart manually if needed.
+    if (directionWillFlip && typeof DevSettings?.reload === 'function') {
+      setTimeout(() => DevSettings.reload(), 150);
     }
   }
 

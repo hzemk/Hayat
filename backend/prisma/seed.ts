@@ -100,15 +100,42 @@ const HOSPITALS = [
 
 const HOSPITAL_ADMIN_PASSWORD = 'hospital1234';
 
+// openHours is stored as DayWindow[] — one entry per weekday, matching the
+// shape the hospital admin portal saves so the patient booking screen and
+// the admin edit screen agree on a single format.
+//   {day:'mon', open:'08:00', close:'20:00'}  → open that day
+//   {day:'fri', open:null,    close:null}     → closed that day
+// Default outpatient: open Sun–Thu and Sat 08:00–20:00, closed Friday.
+// ER: open every day 00:00–24:00.
+type Win = { day: string; open: string | null; close: string | null };
+const DEFAULT_HOURS: Win[] = [
+  { day: 'sun', open: '08:00', close: '20:00' },
+  { day: 'mon', open: '08:00', close: '20:00' },
+  { day: 'tue', open: '08:00', close: '20:00' },
+  { day: 'wed', open: '08:00', close: '20:00' },
+  { day: 'thu', open: '08:00', close: '20:00' },
+  { day: 'fri', open: null, close: null },
+  { day: 'sat', open: '08:00', close: '20:00' },
+];
+const ER_HOURS: Win[] = [
+  'sun',
+  'mon',
+  'tue',
+  'wed',
+  'thu',
+  'fri',
+  'sat',
+].map((day) => ({ day, open: '00:00', close: '23:59' }));
+
 const DEPARTMENTS = [
-  { code: 'ER', nameAr: 'الطوارئ', nameEn: 'Emergency' },
-  { code: 'CARDIO', nameAr: 'أمراض القلب', nameEn: 'Cardiology' },
-  { code: 'PEDIA', nameAr: 'الأطفال', nameEn: 'Pediatrics' },
-  { code: 'INTMED', nameAr: 'الباطنية', nameEn: 'Internal Medicine' },
-  { code: 'OBGYN', nameAr: 'النسائية والتوليد', nameEn: 'OB/GYN' },
-  { code: 'ORTHO', nameAr: 'جراحة العظام', nameEn: 'Orthopedics' },
-  { code: 'DERM', nameAr: 'الجلدية', nameEn: 'Dermatology' },
-  { code: 'ENT', nameAr: 'الأنف والأذن والحنجرة', nameEn: 'ENT' },
+  { code: 'ER', nameAr: 'الطوارئ', nameEn: 'Emergency', openHours: ER_HOURS },
+  { code: 'CARDIO', nameAr: 'أمراض القلب', nameEn: 'Cardiology', openHours: DEFAULT_HOURS },
+  { code: 'PEDIA', nameAr: 'الأطفال', nameEn: 'Pediatrics', openHours: DEFAULT_HOURS },
+  { code: 'INTMED', nameAr: 'الباطنية', nameEn: 'Internal Medicine', openHours: DEFAULT_HOURS },
+  { code: 'OBGYN', nameAr: 'النسائية والتوليد', nameEn: 'OB/GYN', openHours: DEFAULT_HOURS },
+  { code: 'ORTHO', nameAr: 'جراحة العظام', nameEn: 'Orthopedics', openHours: DEFAULT_HOURS },
+  { code: 'DERM', nameAr: 'الجلدية', nameEn: 'Dermatology', openHours: DEFAULT_HOURS },
+  { code: 'ENT', nameAr: 'الأنف والأذن والحنجرة', nameEn: 'ENT', openHours: DEFAULT_HOURS },
 ];
 
 const DEMO_EMAIL = 'ahmed@hayat.jo';
@@ -116,6 +143,12 @@ const DEMO_PASSWORD = 'hayat1234';
 
 const MONA_EMAIL = 'mona@hayat.jo';
 const MONA_PASSWORD = 'hayat1234';
+
+// Matches the mock Sanad login in mobile/app/(auth)/login.tsx. The
+// "Continue with Sanad" button creates/logs in this specific user.
+const SANAD_EMAIL = 'sanad.user@hayat.jo';
+const SANAD_FULL_NAME = 'منى الزعبي';
+const SANAD_SUBJECT = 'JOR-9876543210';
 
 async function seedHospitals() {
   console.log('Seeding hospitals + departments...');
@@ -154,10 +187,26 @@ async function seedHospitalAdmins(
   const passwordHash = await bcrypt.hash(HOSPITAL_ADMIN_PASSWORD, 12);
   const credentials: { email: string; hospital: string }[] = [];
 
+  // Demo profile data per admin slug. Phone numbers reuse the hospital's
+  // public landline; gender/dob are placeholders so the personal-info card
+  // is fully populated even for service accounts.
+  const ADMIN_PROFILES: Record<
+    string,
+    { phoneNumber: string; gender: Gender; dateOfBirth: Date }
+  > = {
+    juh:        { phoneNumber: '+962791200001', gender: Gender.FEMALE, dateOfBirth: new Date('1978-04-21') },
+    bashir:     { phoneNumber: '+962791200002', gender: Gender.MALE,   dateOfBirth: new Date('1975-01-14') },
+    queenrania: { phoneNumber: '+962791200003', gender: Gender.FEMALE, dateOfBirth: new Date('1982-08-09') },
+    kauh:       { phoneNumber: '+962791200004', gender: Gender.MALE,   dateOfBirth: new Date('1972-12-02') },
+    hamza:      { phoneNumber: '+962791200005', gender: Gender.MALE,   dateOfBirth: new Date('1980-06-30') },
+    israa:      { phoneNumber: '+962791200006', gender: Gender.FEMALE, dateOfBirth: new Date('1986-10-17') },
+  };
+
   for (const hosp of hospitals) {
     const meta = HOSPITALS.find((h) => h.nameEn === hosp.nameEn);
     if (!meta) continue;
     const email = `hosp.${hosp.slug}@hayat.jo`;
+    const profile = ADMIN_PROFILES[hosp.slug];
 
     await prisma.user.upsert({
       where: { email },
@@ -167,6 +216,9 @@ async function seedHospitalAdmins(
         hospitalId: hosp.id,
         passwordHash,
         emailVerified: true,
+        phoneNumber: profile?.phoneNumber,
+        gender: profile?.gender,
+        dateOfBirth: profile?.dateOfBirth,
       },
       create: {
         email,
@@ -177,6 +229,9 @@ async function seedHospitalAdmins(
         role: UserRole.HOSPITAL_ADMIN,
         hospitalId: hosp.id,
         preferredLocale: 'ar',
+        phoneNumber: profile?.phoneNumber,
+        gender: profile?.gender,
+        dateOfBirth: profile?.dateOfBirth,
       },
     });
 
@@ -201,6 +256,8 @@ async function seedDemoUser(hospitals: { id: string; nameEn: string }[]) {
       passwordHash,
       fullName: 'أحمد العلي',
       phoneNumber: '+962791234567',
+      gender: Gender.MALE,
+      dateOfBirth: new Date('1990-05-12'),
       emailVerified: true,
     },
     create: {
@@ -605,12 +662,22 @@ async function seedDemoUser(hospitals: { id: string; nameEn: string }[]) {
     },
   });
 
-  // Family members — children under Ahmed's guardianship
-  await prisma.familyMember.deleteMany({ where: { guardianId: user.id } });
-
-  const layla = await prisma.familyMember.create({
-    data: {
+  // Family members — children under Ahmed's guardianship.
+  // Only delete rows tagged with our seed marker so manually-added kids
+  // survive reseeds. (sanadSubject is a unique key on FamilyMember.)
+  await prisma.familyMember.deleteMany({
+    where: {
       guardianId: user.id,
+      sanadSubject: { startsWith: 'seed:ahmed:' },
+    },
+  });
+
+  const layla = await prisma.familyMember.upsert({
+    where: { sanadSubject: 'seed:ahmed:layla' },
+    update: {},
+    create: {
+      guardianId: user.id,
+      sanadSubject: 'seed:ahmed:layla',
       fullName: 'ليلى العلي',
       dateOfBirth: new Date('2017-09-04'),
       gender: Gender.FEMALE,
@@ -640,9 +707,12 @@ async function seedDemoUser(hospitals: { id: string; nameEn: string }[]) {
     ],
   });
 
-  const omar = await prisma.familyMember.create({
-    data: {
+  const omar = await prisma.familyMember.upsert({
+    where: { sanadSubject: 'seed:ahmed:omar' },
+    update: {},
+    create: {
       guardianId: user.id,
+      sanadSubject: 'seed:ahmed:omar',
       fullName: 'عمر العلي',
       dateOfBirth: new Date('2020-03-22'),
       gender: Gender.MALE,
@@ -665,9 +735,12 @@ async function seedDemoUser(hospitals: { id: string; nameEn: string }[]) {
     },
   });
 
-  const yara = await prisma.familyMember.create({
-    data: {
+  const yara = await prisma.familyMember.upsert({
+    where: { sanadSubject: 'seed:ahmed:yara' },
+    update: {},
+    create: {
       guardianId: user.id,
+      sanadSubject: 'seed:ahmed:yara',
       fullName: 'يارا العلي',
       dateOfBirth: new Date('2022-11-30'),
       gender: Gender.FEMALE,
@@ -680,9 +753,12 @@ async function seedDemoUser(hospitals: { id: string; nameEn: string }[]) {
 
   // Adult dependent — listed in the family roster but cannot be booked for
   // by the guardian. Drives the "18+ must book themselves" UX.
-  await prisma.familyMember.create({
-    data: {
+  await prisma.familyMember.upsert({
+    where: { sanadSubject: 'seed:ahmed:mahmoud' },
+    update: {},
+    create: {
       guardianId: user.id,
+      sanadSubject: 'seed:ahmed:mahmoud',
       fullName: 'محمود العلي',
       dateOfBirth: new Date('1962-04-15'),
       gender: Gender.MALE,
@@ -906,6 +982,8 @@ const DOCTORS = [
     fullName: 'Dr. Layla Haddad',
     fullNameAr: 'د. ليلى حداد',
     phoneNumber: '+962791100001',
+    gender: Gender.FEMALE,
+    dateOfBirth: new Date('1985-03-12'),
     licenseNumber: 'JMC-2016-4412',
     specialty: 'Internal Medicine',
     specialtyAr: 'الباطنية',
@@ -925,6 +1003,8 @@ const DOCTORS = [
     fullName: 'Dr. Omar Khalil',
     fullNameAr: 'د. عمر خليل',
     phoneNumber: '+962791100002',
+    gender: Gender.MALE,
+    dateOfBirth: new Date('1980-07-22'),
     licenseNumber: 'JMC-2011-2201',
     specialty: 'Cardiology',
     specialtyAr: 'أمراض القلب',
@@ -943,6 +1023,8 @@ const DOCTORS = [
     fullName: 'Dr. Nour Al-Saadi',
     fullNameAr: 'د. نور السعدي',
     phoneNumber: '+962791100003',
+    gender: Gender.FEMALE,
+    dateOfBirth: new Date('1989-11-04'),
     licenseNumber: 'JMC-2018-5531',
     specialty: 'Pediatrics',
     specialtyAr: 'الأطفال',
@@ -961,6 +1043,8 @@ const DOCTORS = [
     fullName: 'Dr. Khalid Mansour',
     fullNameAr: 'د. خالد منصور',
     phoneNumber: '+962791100004',
+    gender: Gender.MALE,
+    dateOfBirth: new Date('1983-09-18'),
     licenseNumber: 'JMC-2014-3387',
     specialty: 'Dermatology',
     specialtyAr: 'الجلدية',
@@ -979,6 +1063,8 @@ const DOCTORS = [
     fullName: 'Dr. Rania Darwish',
     fullNameAr: 'د. رانيا درويش',
     phoneNumber: '+962791100005',
+    gender: Gender.FEMALE,
+    dateOfBirth: new Date('1981-02-09'),
     licenseNumber: 'JMC-2012-2912',
     specialty: 'OB/GYN',
     specialtyAr: 'النسائية والتوليد',
@@ -1019,6 +1105,8 @@ async function seedDoctors(
       update: {
         fullName: d.fullName,
         phoneNumber: d.phoneNumber,
+        gender: d.gender,
+        dateOfBirth: d.dateOfBirth,
         role: UserRole.DOCTOR,
       },
       create: {
@@ -1028,6 +1116,8 @@ async function seedDoctors(
         emailVerified: true,
         fullName: d.fullName,
         phoneNumber: d.phoneNumber,
+        gender: d.gender,
+        dateOfBirth: d.dateOfBirth,
         role: UserRole.DOCTOR,
         preferredLocale: 'ar',
       },
@@ -1215,6 +1305,8 @@ async function seedMona(doctors: SeededDoctor[]) {
       passwordHash,
       fullName: 'منى الزعبي',
       phoneNumber: '+962795551188',
+      gender: Gender.FEMALE,
+      dateOfBirth: new Date('1988-11-03'),
       emailVerified: true,
     },
     create: {
@@ -1230,12 +1322,21 @@ async function seedMona(doctors: SeededDoctor[]) {
     },
   });
 
-  // Children — Mona can book appointments for these (all under 18)
-  await prisma.familyMember.deleteMany({ where: { guardianId: mona.id } });
-
-  await prisma.familyMember.create({
-    data: {
+  // Children — Mona can book appointments for these (all under 18).
+  // Marker-tagged so manually-added kids survive reseeds.
+  await prisma.familyMember.deleteMany({
+    where: {
       guardianId: mona.id,
+      sanadSubject: { startsWith: 'seed:mona:' },
+    },
+  });
+
+  await prisma.familyMember.upsert({
+    where: { sanadSubject: 'seed:mona:sara' },
+    update: {},
+    create: {
+      guardianId: mona.id,
+      sanadSubject: 'seed:mona:sara',
       fullName: 'سارة الزعبي',
       dateOfBirth: new Date('2015-06-18'),
       gender: Gender.FEMALE,
@@ -1246,9 +1347,12 @@ async function seedMona(doctors: SeededDoctor[]) {
     },
   });
 
-  await prisma.familyMember.create({
-    data: {
+  await prisma.familyMember.upsert({
+    where: { sanadSubject: 'seed:mona:youssef' },
+    update: {},
+    create: {
       guardianId: mona.id,
+      sanadSubject: 'seed:mona:youssef',
       fullName: 'يوسف الزعبي',
       dateOfBirth: new Date('2019-02-09'),
       gender: Gender.MALE,
@@ -1309,6 +1413,344 @@ async function seedMona(doctors: SeededDoctor[]) {
   console.log(`  → ${MONA_EMAIL} / ${MONA_PASSWORD} (2 children, 1 prescription)`);
 }
 
+async function seedSanadUser(doctors: SeededDoctor[]) {
+  console.log(`Seeding Sanad demo user ${SANAD_EMAIL}...`);
+  const layla = doctors.find((d) => d.nameEn === 'Dr. Layla Haddad');
+  if (!layla) {
+    console.warn('  ! Dr. Layla not seeded — skipping Sanad user reminders.');
+    return;
+  }
+
+  const user = await prisma.user.upsert({
+    where: { email: SANAD_EMAIL },
+    update: {
+      fullName: SANAD_FULL_NAME,
+      authProvider: AuthProvider.SANAD,
+      sanadId: SANAD_SUBJECT,
+      emailVerified: true,
+      defaultDoctorId: layla.id,
+      preferredLocale: 'ar',
+      phoneNumber: '+962795551188',
+      gender: Gender.FEMALE,
+      dateOfBirth: new Date('1988-11-03'),
+    },
+    create: {
+      email: SANAD_EMAIL,
+      fullName: SANAD_FULL_NAME,
+      authProvider: AuthProvider.SANAD,
+      sanadId: SANAD_SUBJECT,
+      emailVerified: true,
+      preferredLocale: 'ar',
+      defaultDoctorId: layla.id,
+      phoneNumber: '+962795551188',
+      gender: Gender.FEMALE,
+      dateOfBirth: new Date('1988-11-03'),
+    },
+  });
+
+  // Health summary — Sanad-imported MedicalRecord with blood type, conditions,
+  // allergies, medications and an emergency contact. Re-seed every run so the
+  // demo data stays consistent with the script.
+  const record = await prisma.medicalRecord.upsert({
+    where: { userId: user.id },
+    update: { bloodType: 'A+', heightCm: 165, weightKg: 64 },
+    create: {
+      userId: user.id,
+      bloodType: 'A+',
+      heightCm: 165,
+      weightKg: 64,
+    },
+  });
+  await prisma.condition.deleteMany({ where: { medicalRecordId: record.id } });
+  await prisma.allergy.deleteMany({ where: { medicalRecordId: record.id } });
+  await prisma.medication.deleteMany({ where: { medicalRecordId: record.id } });
+  await prisma.emergencyContact.deleteMany({
+    where: { medicalRecordId: record.id },
+  });
+  await prisma.condition.createMany({
+    data: [
+      {
+        medicalRecordId: record.id,
+        name: 'Type 2 Diabetes',
+        icdCode: 'E11',
+        diagnosedAt: new Date('2022-05-14'),
+        status: 'active',
+      },
+      {
+        medicalRecordId: record.id,
+        name: 'High cholesterol',
+        icdCode: 'E78.0',
+        diagnosedAt: new Date('2023-01-22'),
+        status: 'active',
+      },
+    ],
+  });
+  await prisma.allergy.createMany({
+    data: [
+      {
+        medicalRecordId: record.id,
+        substance: 'Sulfa drugs',
+        severity: 'moderate',
+        reaction: 'Rash',
+      },
+    ],
+  });
+  await prisma.medication.createMany({
+    data: [
+      {
+        medicalRecordId: record.id,
+        name: 'Metformin',
+        dose: '500mg',
+        frequency: 'Twice daily',
+        startedAt: new Date('2022-05-14'),
+      },
+      {
+        medicalRecordId: record.id,
+        name: 'Atorvastatin',
+        dose: '20mg',
+        frequency: 'Once daily at bedtime',
+        startedAt: new Date('2023-01-22'),
+      },
+    ],
+  });
+  await prisma.emergencyContact.create({
+    data: {
+      medicalRecordId: record.id,
+      name: 'سامي الزعبي',
+      relationship: 'Spouse',
+      phoneNumber: '+962799887766',
+    },
+  });
+
+  // Family for the Sanad user. Names are distinct from Mona's family so the
+  // two demo accounts don't look like duplicates. Marker-tagged so manually
+  // added kids survive reseeds.
+  await prisma.familyMember.deleteMany({
+    where: {
+      guardianId: user.id,
+      sanadSubject: { startsWith: 'seed:sanad:' },
+    },
+  });
+
+  // Daughter — healthy baseline.
+  await prisma.familyMember.upsert({
+    where: { sanadSubject: 'seed:sanad:salma' },
+    update: {},
+    create: {
+      guardianId: user.id,
+      sanadSubject: 'seed:sanad:salma',
+      fullName: 'سلمى الزعبي',
+      dateOfBirth: new Date('2016-06-18'),
+      gender: Gender.FEMALE,
+      relationship: 'daughter',
+      bloodType: 'O+',
+      allergies: [],
+      conditions: [],
+    },
+  });
+
+  // Son — mild profile.
+  await prisma.familyMember.upsert({
+    where: { sanadSubject: 'seed:sanad:adam' },
+    update: {},
+    create: {
+      guardianId: user.id,
+      sanadSubject: 'seed:sanad:adam',
+      fullName: 'آدم الزعبي',
+      dateOfBirth: new Date('2020-02-09'),
+      gender: Gender.MALE,
+      relationship: 'son',
+      bloodType: 'O+',
+      allergies: ['Dust mites'],
+      conditions: ['Mild eczema'],
+    },
+  });
+
+  // Third child — complex medical profile: multiple severe allergies,
+  // multiple chronic conditions, on several daily meds, flagged for urgent
+  // follow-up. Demonstrates the "sick kid" family-roster UX end-to-end.
+  const khaled = await prisma.familyMember.upsert({
+    where: { sanadSubject: 'seed:sanad:khaled' },
+    update: {},
+    create: {
+      guardianId: user.id,
+      sanadSubject: 'seed:sanad:khaled',
+      fullName: 'خالد الزعبي',
+      dateOfBirth: new Date('2018-04-12'),
+      gender: Gender.MALE,
+      relationship: 'son',
+      bloodType: 'AB-',
+      allergies: [
+        'Peanuts (anaphylaxis)',
+        'Penicillin',
+        'Eggs',
+        'Bee stings',
+      ],
+      conditions: [
+        'Type 1 Diabetes',
+        'Severe persistent asthma',
+        'Atopic dermatitis',
+        'ADHD',
+      ],
+      needsUrgentCare: true,
+      urgentCareNote:
+        'Recurrent asthma exacerbations — last ER visit 2 weeks ago. Monitor blood glucose + peak flow daily.',
+    },
+  });
+
+  // Wipe and reseed Khaled's medications so reseeding stays deterministic.
+  await prisma.familyMedication.deleteMany({
+    where: { familyMemberId: khaled.id },
+  });
+  await prisma.familyMedication.createMany({
+    data: [
+      {
+        familyMemberId: khaled.id,
+        name: 'Insulin (Lantus)',
+        dose: '10 units',
+        frequency: 'Once daily at bedtime',
+        notes: 'Long-acting basal insulin',
+      },
+      {
+        familyMemberId: khaled.id,
+        name: 'Insulin (NovoRapid)',
+        dose: 'per meal sliding scale',
+        frequency: 'Before each meal',
+        notes: 'Rapid-acting, per carb count',
+      },
+      {
+        familyMemberId: khaled.id,
+        name: 'Salbutamol inhaler',
+        dose: '100mcg',
+        frequency: '2 puffs every 4–6h as needed',
+        notes: 'Rescue inhaler — carry at all times',
+      },
+      {
+        familyMemberId: khaled.id,
+        name: 'Fluticasone inhaler',
+        dose: '125mcg',
+        frequency: '2 puffs twice daily',
+        notes: 'Daily controller — do NOT skip',
+      },
+      {
+        familyMemberId: khaled.id,
+        name: 'EpiPen Jr',
+        dose: '0.15mg',
+        frequency: 'IM if anaphylaxis, then call 911',
+        notes: 'For peanut / bee sting emergency',
+      },
+      {
+        familyMemberId: khaled.id,
+        name: 'Methylphenidate',
+        dose: '10mg',
+        frequency: 'Once daily in the morning',
+        notes: 'ADHD — with breakfast',
+      },
+    ],
+  });
+
+  // Exactly one vaccination, linked to Dr. Layla at JUH, replacing any
+  // existing records so the "one vaccine" demo state is deterministic.
+  await prisma.vaccination.deleteMany({ where: { userId: user.id } });
+  const juh = await prisma.hospital.findFirst({
+    where: { nameEn: 'Jordan University Hospital' },
+    select: { id: true },
+  });
+  await prisma.vaccination.create({
+    data: {
+      userId: user.id,
+      name: 'Influenza (Seasonal)',
+      manufacturer: 'Sanofi',
+      doseNumber: 1,
+      totalDoses: 1,
+      dateGiven: new Date('2025-10-02'),
+      expiresAt: new Date('2026-09-30'),
+      batchNumber: 'SF-FLU-2025-421',
+      administeredBy: 'Dr. Layla Haddad',
+      administeredAt: 'Jordan University Hospital, Amman',
+      administeredByDoctorId: layla.id,
+      administeredAtHospitalId: juh?.id ?? null,
+      certificateNumber: 'JO-FLU-2025-00421',
+      notes: 'Seasonal flu shot, single dose',
+    },
+  });
+
+  // Wipe any previously seeded reminders/prescriptions for this user so the
+  // seed is idempotent and the two 6-month reminders below are the only ones
+  // that appear.
+  await prisma.reminder.deleteMany({ where: { userId: user.id } });
+  await prisma.prescription.deleteMany({ where: { patientId: user.id } });
+
+  const now = new Date();
+  const sixMonths = new Date(now);
+  sixMonths.setMonth(sixMonths.getMonth() + 6);
+
+  const prescription = await prisma.prescription.create({
+    data: {
+      patientId: user.id,
+      doctorUserId: layla.userId,
+      doctorId: layla.id,
+      issuedAt: now,
+      expiresAt: sixMonths,
+      status: PrescriptionStatus.ACTIVE,
+      notes: 'Chronic medications — 6-month course (Dr. Layla)',
+      items: {
+        create: [
+          {
+            medicationName: 'Metformin',
+            dose: '500mg',
+            frequency: 'Twice daily',
+            durationDays: 180,
+            instructionsAr: 'بعد الإفطار والعشاء',
+            instructionsEn: 'After breakfast and dinner',
+          },
+          {
+            medicationName: 'Atorvastatin',
+            dose: '20mg',
+            frequency: 'Once daily at bedtime',
+            durationDays: 180,
+            instructionsAr: 'قبل النوم',
+            instructionsEn: 'At bedtime',
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.reminder.createMany({
+    data: [
+      {
+        userId: user.id,
+        type: ReminderType.MEDICATION,
+        title: 'Metformin 500mg',
+        subtitle: 'After breakfast & dinner',
+        scheduledAt: now,
+        endsAt: sixMonths,
+        recurrence: 'daily',
+        status: ReminderStatus.PENDING,
+        source: 'PRESCRIPTION',
+        prescriptionId: prescription.id,
+      },
+      {
+        userId: user.id,
+        type: ReminderType.MEDICATION,
+        title: 'Atorvastatin 20mg',
+        subtitle: 'Before bed',
+        scheduledAt: now,
+        endsAt: sixMonths,
+        recurrence: 'daily',
+        status: ReminderStatus.PENDING,
+        source: 'PRESCRIPTION',
+        prescriptionId: prescription.id,
+      },
+    ],
+  });
+
+  console.log(
+    `  → ${SANAD_EMAIL} (Sanad) · 2 reminders × 6 months · prescribed by Dr. Layla`,
+  );
+}
+
 async function main() {
   const hospitals = await seedHospitals();
   await seedHospitalAdmins(hospitals);
@@ -1316,6 +1758,7 @@ async function main() {
   const doctors = await seedDoctors(hospitals);
   await seedDefaultThread(DEMO_EMAIL, doctors);
   await seedMona(doctors);
+  await seedSanadUser(doctors);
   console.log('Seed complete.');
 }
 

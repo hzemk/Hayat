@@ -105,6 +105,8 @@ export default function DoctorLayout() {
       />
       <Tabs.Screen name="chat/[patientId]" options={{ href: null }} />
       <Tabs.Screen name="rx/[patientId]" options={{ href: null }} />
+      <Tabs.Screen name="rx/edit/[rxId]" options={{ href: null }} />
+      <Tabs.Screen name="vaccine/[patientId]" options={{ href: null }} />
       <Tabs.Screen name="schedule" options={{ href: null }} />
     </Tabs>
   );

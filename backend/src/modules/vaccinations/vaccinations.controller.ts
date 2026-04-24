@@ -1,19 +1,17 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Param,
-  Post,
-} from '@nestjs/common';
+import { Controller, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { VaccinationsService } from './vaccinations.service';
-import { CreateVaccinationDto } from './dto/create-vaccination.dto';
+import { VaccineCertShareService } from './vaccine-cert-share.service';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 
+// Patient-facing vaccinations are read-only — only doctors can create them
+// (via the doctor portal) and the patient cannot delete their own records
+// since they're medical history.
 @Controller('vaccinations')
 export class VaccinationsController {
-  constructor(private readonly vaccinations: VaccinationsService) {}
+  constructor(
+    private readonly vaccinations: VaccinationsService,
+    private readonly share: VaccineCertShareService,
+  ) {}
 
   @Get()
   list(@CurrentUser('userId') userId: string) {
@@ -21,21 +19,24 @@ export class VaccinationsController {
   }
 
   @Get(':id')
-  get(@CurrentUser('userId') userId: string, @Param('id') id: string) {
+  get(
+    @CurrentUser('userId') userId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.vaccinations.getById(userId, id);
   }
 
-  @Post()
-  create(
+  // Mints a 24h-scoped token the patient embeds in a QR code. Anyone with
+  // the resulting URL can view the public HTML certificate at /v/:token.
+  @Post(':id/share-token')
+  @HttpCode(201)
+  async createShareToken(
     @CurrentUser('userId') userId: string,
-    @Body() dto: CreateVaccinationDto,
+    @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.vaccinations.create(userId, dto);
-  }
-
-  @Delete(':id')
-  @HttpCode(204)
-  remove(@CurrentUser('userId') userId: string, @Param('id') id: string) {
-    return this.vaccinations.remove(userId, id);
+    // Reuses the existing service to enforce ownership before signing.
+    await this.vaccinations.getById(userId, id);
+    const { token, expiresAt } = await this.share.sign(id, userId);
+    return { token, expiresAt, path: `v/${token}` };
   }
 }

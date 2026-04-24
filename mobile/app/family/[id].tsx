@@ -1,14 +1,17 @@
 import { useMemo } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { GradientHeader } from '@components/GradientHeader';
+import { GradientButton } from '@components/GradientButton';
 import { SectionContainer } from '@components/SectionContainer';
 import { TintedSection } from '@components/TintedSection';
 import { Card } from '@components/Card';
@@ -16,8 +19,13 @@ import { ListItem } from '@components/ListItem';
 import { InfoChip } from '@components/InfoChip';
 import { StatCard } from '@components/StatCard';
 import { Reminder } from '@services/api/reminders.api';
-import { findPreviewMember } from '@services/api/family.preview';
+import {
+  getFamilyMember,
+  listFamilyReminders,
+} from '@services/api/family.api';
 import { AppColors, radius, shadow, spacing, typography, useTheme } from '@theme/index';
+
+const MIN_BOOKING_AGE_YEARS = 18;
 
 function ageFrom(dateOfBirth: string): number {
   const dob = new Date(dateOfBirth);
@@ -79,19 +87,31 @@ function reminderIcon(type: Reminder['type']): keyof typeof Ionicons.glyphMap {
 
 export default function FamilyMemberDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const memberId = String(id ?? '');
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const styles = useStyles(colors);
-  const member = id ? findPreviewMember(id) : undefined;
+
+  const memberQuery = useQuery({
+    queryKey: ['family-member', memberId],
+    queryFn: () => getFamilyMember(memberId),
+    enabled: !!memberId,
+  });
+  const remindersQuery = useQuery({
+    queryKey: ['family-reminders', memberId, 'all'],
+    queryFn: () => listFamilyReminders(memberId, 'all'),
+    enabled: !!memberId,
+  });
+  const member = memberQuery.data;
 
   const sortedReminders = useMemo(
     () =>
-      [...(member?.reminders ?? [])].sort(
+      [...(remindersQuery.data ?? [])].sort(
         (a, b) =>
           new Date(a.scheduledAt).getTime() -
           new Date(b.scheduledAt).getTime(),
       ),
-    [member],
+    [remindersQuery.data],
   );
 
   const initials = useMemo(() => {
@@ -104,6 +124,21 @@ export default function FamilyMemberDetail() {
       .join('')
       .toUpperCase();
   }, [member]);
+
+  if (memberQuery.isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.surface.raised,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <ActivityIndicator color={colors.brand.primary} />
+      </View>
+    );
+  }
 
   if (!member) {
     return (
@@ -124,6 +159,7 @@ export default function FamilyMemberDetail() {
   }
 
   const age = ageFrom(member.dateOfBirth);
+  const canBook = age < MIN_BOOKING_AGE_YEARS;
   const medicationReminders = sortedReminders.filter(
     (r) => r.type === 'MEDICATION',
   );
@@ -167,6 +203,24 @@ export default function FamilyMemberDetail() {
               {member.urgentCareNote ?? t('family.urgentDefault')}
             </Text>
           </TintedSection>
+        ) : null}
+
+        {canBook ? (
+          <GradientButton
+            label={t('family.bookFor', {
+              name: member.fullName,
+              defaultValue: `Book appointment for ${member.fullName}`,
+            })}
+            leftIcon={
+              <Ionicons name="calendar" size={18} color={colors.brand.on} />
+            }
+            onPress={() =>
+              router.push({
+                pathname: '/booking',
+                params: { familyMemberId: member.id },
+              })
+            }
+          />
         ) : null}
 
         <View style={styles.statsRow}>

@@ -170,6 +170,100 @@ export async function listIssuedPrescriptions() {
   return data;
 }
 
+export async function getIssuedPrescription(rxId: string) {
+  const { data } = await api.get<IssuedPrescription>(
+    `/doctor/prescriptions/${rxId}`,
+  );
+  return data;
+}
+
+export interface UpdateRxPayload {
+  notes?: string;
+  status?: 'ACTIVE' | 'DISPENSED' | 'EXPIRED' | 'CANCELLED';
+  items?: IssueRxItem[];
+}
+
+export async function updateIssuedPrescription(
+  rxId: string,
+  payload: UpdateRxPayload,
+) {
+  const { data } = await api.patch<IssuedPrescription>(
+    `/doctor/prescriptions/${rxId}`,
+    payload,
+  );
+  return data;
+}
+
+export interface IssueVaccinationPayload {
+  name: string;
+  manufacturer?: string;
+  doseNumber?: number;
+  totalDoses?: number;
+  dateGiven: string; // YYYY-MM-DD
+  expiresAt?: string;
+  batchNumber?: string;
+  certificateNumber?: string;
+  notes?: string;
+}
+
+export async function issueVaccinationForPatient(
+  patientId: string,
+  payload: IssueVaccinationPayload,
+) {
+  const { data } = await api.post(
+    `/doctor/patients/${patientId}/vaccinations`,
+    payload,
+  );
+  return data;
+}
+
+export interface PatientVaccinationRow {
+  id: string;
+  name: string;
+  manufacturer: string | null;
+  doseNumber: number | null;
+  totalDoses: number | null;
+  dateGiven: string;
+  expiresAt: string | null;
+  batchNumber: string | null;
+  certificateNumber: string | null;
+  notes: string | null;
+  administeredByDoctor: {
+    user: { fullName: string | null };
+  } | null;
+  administeredAtHospital: { nameAr: string; nameEn: string } | null;
+  canDelete: boolean;
+  canEdit: boolean;
+}
+
+export async function listPatientVaccinations(patientId: string) {
+  const { data } = await api.get<PatientVaccinationRow[]>(
+    `/doctor/patients/${patientId}/vaccinations`,
+  );
+  return data;
+}
+
+export async function deletePatientVaccination(
+  patientId: string,
+  vaccinationId: string,
+) {
+  await api.delete(
+    `/doctor/patients/${patientId}/vaccinations/${vaccinationId}`,
+  );
+}
+
+export async function updatePatientVaccination(
+  patientId: string,
+  vaccinationId: string,
+  payload: IssueVaccinationPayload,
+) {
+  const { data } = await api.patch(
+    `/doctor/patients/${patientId}/vaccinations/${vaccinationId}`,
+    payload,
+  );
+  return data;
+}
+
 export async function sendDoctorMessageToPatient(
   patientId: string,
   body: { body: string; kind?: DoctorMessageKind },

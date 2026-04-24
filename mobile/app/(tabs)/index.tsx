@@ -18,6 +18,7 @@ import { ListItem } from '@components/ListItem';
 import { Card } from '@components/Card';
 import { FloatingChatButton } from '@components/FloatingChatButton';
 import { ReminderItem } from '@components/ReminderItem';
+import { WeatherCard } from '@components/WeatherCard';
 import { useAuthStore } from '@stores/auth';
 import { listReminders } from '@services/api/reminders.api';
 import { listAppointments, Appointment } from '@services/api/appointments.api';
@@ -345,6 +346,12 @@ export default function HomeScreen() {
               <Text style={styles.empty}>{t('home.noReminders')}</Text>
             </Card>
           )}
+        </SectionContainer>
+
+        <SectionContainer
+          title={t('weather.title', { defaultValue: 'Today\'s weather' })}
+        >
+          <WeatherCard />
         </SectionContainer>
       </View>
     </ScrollView>

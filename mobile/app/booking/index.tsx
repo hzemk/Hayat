@@ -43,8 +43,69 @@ function ageYears(dateOfBirth: string, ref: Date = new Date()) {
 type Step = 'hospital' | 'department' | 'schedule' | 'doctor';
 
 const DAY_COUNT = 7;
-const REGULAR_HOURS = { start: 8, end: 20 };
-const ER_HOURS = { start: 0, end: 23 };
+// JS Date.getDay() → DayWindow code. Sunday=0..Saturday=6.
+const DAY_CODES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+
+type DayWindow = {
+  day: string;
+  open: string | null;
+  close: string | null;
+};
+
+// Default outpatient hours used when a department has no openHours saved
+// (e.g. legacy rows the admin hasn't touched yet). Sun–Thu and Sat 8–20,
+// Friday closed (Jordan weekend). ER: always 24/7.
+const DEFAULT_HOURS: DayWindow[] = [
+  { day: 'sun', open: '08:00', close: '20:00' },
+  { day: 'mon', open: '08:00', close: '20:00' },
+  { day: 'tue', open: '08:00', close: '20:00' },
+  { day: 'wed', open: '08:00', close: '20:00' },
+  { day: 'thu', open: '08:00', close: '20:00' },
+  { day: 'fri', open: null, close: null },
+  { day: 'sat', open: '08:00', close: '20:00' },
+];
+const ER_HOURS: DayWindow[] = DAY_CODES.map((day) => ({
+  day,
+  open: '00:00',
+  close: '23:59',
+}));
+
+function hoursFor(
+  dept: { code: string; openHours: DayWindow[] | null } | null | undefined,
+): DayWindow[] {
+  if (!dept) return DEFAULT_HOURS;
+  if (dept.openHours && dept.openHours.length > 0) return dept.openHours;
+  return dept.code === 'ER' ? ER_HOURS : DEFAULT_HOURS;
+}
+
+function windowForDay(
+  dept: { code: string; openHours: DayWindow[] | null },
+  ref: Date,
+): DayWindow | null {
+  const code = DAY_CODES[ref.getDay()];
+  return hoursFor(dept).find((w) => w.day === code) ?? null;
+}
+
+function isDeptOpenNow(
+  dept: { code: string; openHours: DayWindow[] | null },
+  ref: Date = new Date(),
+): boolean {
+  if (dept.code === 'ER') return true;
+  const w = windowForDay(dept, ref);
+  if (!w || !w.open || !w.close) return false;
+  const minutes = ref.getHours() * 60 + ref.getMinutes();
+  return minutes >= toMin(w.open) && minutes < toMin(w.close);
+}
+
+function toMin(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
+function rangeLabel(w: DayWindow | null): string | null {
+  if (!w || !w.open || !w.close) return null;
+  return `${w.open} – ${w.close}`;
+}
 
 function startOfDay(d: Date) {
   const copy = new Date(d);
@@ -63,8 +124,12 @@ function isSameDay(a: Date, b: Date) {
 export default function BookingScreen() {
   const { t, i18n } = useTranslation();
   const locale = (i18n.language === 'en' ? 'en' : 'ar') as 'ar' | 'en';
-  const params = useLocalSearchParams<{ hospitalId?: string }>();
+  const params = useLocalSearchParams<{
+    hospitalId?: string;
+    familyMemberId?: string;
+  }>();
   const preselectedId = params.hospitalId;
+  const preselectedFamilyMemberId = params.familyMemberId;
   const { colors } = useTheme();
   const styles = useStyles(colors);
 
@@ -77,7 +142,9 @@ export default function BookingScreen() {
   const [hospital, setHospital] = useState<Hospital | null>(null);
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [doctorId, setDoctorId] = useState<string | null>(null);
-  const [familyMemberId, setFamilyMemberId] = useState<string | null>(null);
+  const [familyMemberId, setFamilyMemberId] = useState<string | null>(
+    preselectedFamilyMemberId ?? null,
+  );
   const [reason, setReason] = useState('');
   const [now, setNow] = useState(() => new Date());
   const queryClient = useQueryClient();
@@ -180,15 +247,29 @@ export default function BookingScreen() {
   );
   const isER = selectedDepartment?.code === 'ER';
 
+  const selectedDayWindow = useMemo(
+    () => (selectedDepartment ? windowForDay(selectedDepartment, selectedDay) : null),
+    [selectedDepartment, selectedDay],
+  );
+  const selectedDayClosed = useMemo(() => {
+    if (!selectedDepartment) return false;
+    if (selectedDepartment.code === 'ER') return false;
+    return !selectedDayWindow?.open || !selectedDayWindow?.close;
+  }, [selectedDepartment, selectedDayWindow]);
+
   const hourSlots = useMemo(() => {
-    const range = isER ? ER_HOURS : REGULAR_HOURS;
+    if (selectedDayClosed || !selectedDayWindow?.open || !selectedDayWindow?.close) {
+      return [];
+    }
+    const startH = Math.floor(toMin(selectedDayWindow.open) / 60);
+    const endH = Math.ceil(toMin(selectedDayWindow.close) / 60);
     const all: number[] = [];
-    for (let h = range.start; h <= range.end; h++) all.push(h);
+    for (let h = startH; h < endH; h++) all.push(h);
     if (isSameDay(selectedDay, today)) {
       return all.filter((h) => h > now.getHours());
     }
     return all;
-  }, [isER, selectedDay, today, now]);
+  }, [selectedDayWindow, selectedDay, today, now, selectedDayClosed]);
 
   useEffect(() => {
     if (selectedHour !== null && !hourSlots.includes(selectedHour)) {
@@ -301,11 +382,7 @@ export default function BookingScreen() {
         {familyMembers.length > 0 ? (
           <View>
             <Text style={styles.sectionLabel}>{t('booking.bookingFor')}</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
-            >
+            <View style={styles.chipWrap}>
               <Pressable
                 onPress={() => onPickFamily(null)}
                 style={[
@@ -369,7 +446,7 @@ export default function BookingScreen() {
                   </Pressable>
                 );
               })}
-            </ScrollView>
+            </View>
           </View>
         ) : null}
 
@@ -440,6 +517,8 @@ export default function BookingScreen() {
             <View style={styles.deptGrid}>
               {hospital.departments.map((d) => {
                 const isErDept = d.code === 'ER';
+                const openNow = isDeptOpenNow(d, now);
+                const todayWin = windowForDay(d, now);
                 return (
                   <Pressable
                     key={d.id}
@@ -465,7 +544,19 @@ export default function BookingScreen() {
                           {t('booking.open24h')}
                         </Text>
                       </View>
-                    ) : null}
+                    ) : openNow && rangeLabel(todayWin) ? (
+                      <Text style={styles.deptHoursOpen}>
+                        {rangeLabel(todayWin)}
+                      </Text>
+                    ) : (
+                      <View style={styles.closedBadge}>
+                        <Text style={styles.closedBadgeText}>
+                          {t('booking.closedNow', {
+                            defaultValue: 'Closed now',
+                          })}
+                        </Text>
+                      </View>
+                    )}
                   </Pressable>
                 );
               })}
@@ -510,6 +601,13 @@ export default function BookingScreen() {
               >
                 {days.map((d) => {
                   const selected = isSameDay(d, selectedDay);
+                  const win = selectedDepartment
+                    ? windowForDay(selectedDepartment, d)
+                    : null;
+                  const dayClosed =
+                    selectedDepartment &&
+                    selectedDepartment.code !== 'ER' &&
+                    (!win || !win.open || !win.close);
                   return (
                     <Pressable
                       key={d.toISOString()}
@@ -517,12 +615,14 @@ export default function BookingScreen() {
                       style={[
                         styles.dayChip,
                         selected && styles.chipSelected,
+                        dayClosed && !selected && styles.dayChipClosed,
                       ]}
                     >
                       <Text
                         style={[
                           styles.dayChipTop,
                           selected && styles.chipTextSelected,
+                          dayClosed && !selected && { color: colors.text.muted },
                         ]}
                         numberOfLines={1}
                       >
@@ -532,10 +632,21 @@ export default function BookingScreen() {
                         style={[
                           styles.dayChipBottom,
                           selected && styles.chipTextSelected,
+                          dayClosed && !selected && { color: colors.text.muted },
                         ]}
                       >
                         {d.getDate()}
                       </Text>
+                      {dayClosed ? (
+                        <Text
+                          style={[
+                            styles.dayChipClosedLabel,
+                            selected && styles.chipTextSelected,
+                          ]}
+                        >
+                          {t('booking.closed', { defaultValue: 'Closed' })}
+                        </Text>
+                      ) : null}
                     </Pressable>
                   );
                 })}
@@ -549,7 +660,12 @@ export default function BookingScreen() {
               {hourSlots.length === 0 ? (
                 <Card variant="outline">
                   <Text style={styles.muted}>
-                    {t('booking.noSlotsToday')}
+                    {selectedDayClosed
+                      ? t('booking.closedThisDay', {
+                          defaultValue:
+                            'This department is closed on this day. Pick another day, or use Emergency for 24/7 care.',
+                        })
+                      : t('booking.noSlotsToday')}
                   </Text>
                 </Card>
               ) : (
@@ -838,6 +954,25 @@ function useStyles(colors: AppColors) {
     fontWeight: typography.weight.bold,
     letterSpacing: 0.5,
   },
+  closedBadge: {
+    backgroundColor: colors.surface.sunken,
+    borderWidth: 1,
+    borderColor: colors.surface.border,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
+  closedBadgeText: {
+    color: colors.text.muted,
+    fontSize: 10,
+    fontWeight: typography.weight.bold,
+    letterSpacing: 0.5,
+  },
+  deptHoursOpen: {
+    color: colors.text.muted,
+    fontSize: 10,
+    fontWeight: typography.weight.semibold,
+  },
   summaryLabel: {
     fontSize: typography.size.md,
     fontWeight: typography.weight.bold,
@@ -858,6 +993,12 @@ function useStyles(colors: AppColors) {
     gap: spacing.sm,
     paddingVertical: spacing.xs,
   },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
   dayChip: {
     minWidth: 64,
     paddingVertical: spacing.md,
@@ -868,6 +1009,18 @@ function useStyles(colors: AppColors) {
     backgroundColor: colors.surface.base,
     alignItems: 'center',
     gap: 2,
+  },
+  dayChipClosed: {
+    backgroundColor: colors.surface.sunken,
+    borderStyle: 'dashed',
+  },
+  dayChipClosedLabel: {
+    fontSize: 9,
+    fontWeight: typography.weight.bold,
+    letterSpacing: 0.5,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    marginTop: 2,
   },
   dayChipTop: {
     fontSize: typography.size.xs,

@@ -1,13 +1,20 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { GradientHeader } from '@components/GradientHeader';
 import { SectionContainer } from '@components/SectionContainer';
 import { InfoChip } from '@components/InfoChip';
-import { FamilyMember } from '@services/api/family.api';
-import { PREVIEW_FAMILY } from '@services/api/family.preview';
+import { FamilyMember, listFamilyMembers } from '@services/api/family.api';
 import { AppColors, radius, shadow, spacing, typography, useTheme } from '@theme/index';
 
 function ageFrom(dateOfBirth: string): number {
@@ -36,9 +43,28 @@ export default function FamilyListScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useStyles(colors);
-  const members = PREVIEW_FAMILY;
+  const { data, isLoading } = useQuery({
+    queryKey: ['family-members'],
+    queryFn: listFamilyMembers,
+  });
+  const members = data ?? [];
   const urgent = members.filter((m) => m.needsUrgentCare);
   const regular = members.filter((m) => !m.needsUrgentCare);
+
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.surface.raised,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <ActivityIndicator color={colors.brand.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView

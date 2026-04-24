@@ -125,19 +125,6 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <Pressable
-        onPress={toggle}
-        hitSlop={10}
-        style={styles.themeToggle}
-        accessibilityRole="button"
-        accessibilityLabel={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      >
-        <Ionicons
-          name={isDark ? 'sunny' : 'moon'}
-          size={16}
-          color={colors.text.primary}
-        />
-      </Pressable>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -157,6 +144,24 @@ export default function LoginScreen() {
             />
             <Text style={styles.brand}>{t('app.name')}</Text>
             <Text style={styles.tagline}>{t('app.tagline')}</Text>
+            <Pressable
+              onPress={toggle}
+              hitSlop={10}
+              style={styles.themeToggle}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isDark ? 'Switch to light mode' : 'Switch to dark mode'
+              }
+            >
+              <Ionicons
+                name={isDark ? 'sunny' : 'moon'}
+                size={14}
+                color={colors.text.secondary}
+              />
+              <Text style={styles.themeToggleText}>
+                {isDark ? 'Light mode' : 'Dark mode'}
+              </Text>
+            </Pressable>
           </View>
 
           {role === null ? (
@@ -479,19 +484,21 @@ function useStyles(colors: AppColors) {
           marginBottom: spacing.xl,
         },
         themeToggle: {
-          position: 'absolute',
-          top: spacing.md,
-          right: spacing.md,
-          width: 36,
-          height: 36,
-          borderRadius: 18,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          paddingVertical: 6,
+          paddingHorizontal: spacing.md,
+          borderRadius: 999,
           borderWidth: 1,
           backgroundColor: colors.surface.base,
           borderColor: colors.surface.border,
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 50,
-          elevation: 4,
+          marginTop: spacing.sm,
+        },
+        themeToggleText: {
+          fontSize: typography.size.xs,
+          fontWeight: typography.weight.semibold,
+          color: colors.text.secondary,
         },
         errorBanner: {
           flexDirection: 'row',

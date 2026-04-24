@@ -157,6 +157,25 @@ function Row({ row }: { row: DoctorPatientRow }) {
           </Text>
         </Pressable>
         <Pressable
+          onPress={() => router.push(`/(doctor)/vaccine/${patient.id}`)}
+          style={({ pressed }) => [
+            styles.action,
+            styles.actionGhost,
+            pressed && { opacity: 0.85 },
+          ]}
+        >
+          <Ionicons
+            name="shield-checkmark"
+            size={16}
+            color={colors.brand.primary}
+          />
+          <Text style={styles.actionGhostText}>
+            {t('doctorPortal.patient.vaccinate', {
+              defaultValue: 'Vaccinate',
+            })}
+          </Text>
+        </Pressable>
+        <Pressable
           onPress={() => router.push(`/(doctor)/rx/${patient.id}`)}
           style={({ pressed }) => [
             styles.action,

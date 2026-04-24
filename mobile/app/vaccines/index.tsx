@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { GradientHeader } from '@components/GradientHeader';
 import { Card } from '@components/Card';
-import { GradientButton } from '@components/GradientButton';
 import {
   listVaccinations,
   Vaccination,
@@ -46,10 +45,19 @@ export default function VaccinesList() {
       />
 
       <View style={styles.body}>
-        <GradientButton
-          label={t('vaccines.add') || 'Add vaccination'}
-          onPress={() => router.push('/vaccines/new')}
-        />
+        <Card variant="outline">
+          <View style={styles.row}>
+            <Ionicons
+              name="information-circle"
+              size={18}
+              color={colors.brand.primary}
+            />
+            <Text style={[styles.muted, { textAlign: 'left', flex: 1 }]}>
+              {t('vaccines.readOnlyHint') ||
+                'Your vaccinations are recorded by your doctor and can\'t be added or removed from here.'}
+            </Text>
+          </View>
+        </Card>
 
         {isLoading ? (
           <Card>
@@ -66,8 +74,8 @@ export default function VaccinesList() {
                 color={colors.text.muted}
               />
               <Text style={styles.muted}>
-                {t('vaccines.empty') ||
-                  'No vaccinations recorded yet. Add your first one to build your passport.'}
+                {t('vaccines.emptyReadOnly') ||
+                  'No vaccinations recorded yet. Your doctor will add them here after each visit.'}
               </Text>
             </View>
           </Card>

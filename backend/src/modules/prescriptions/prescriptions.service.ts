@@ -196,9 +196,33 @@ export class PrescriptionsService {
   async scan(_userId: string, dto: ScanPrescriptionDto): Promise<ScanResult> {
     const provider = this.pickProvider();
     if (!provider) {
-      throw new ServiceUnavailableException(
-        'Prescription scanner is not configured. Set GROQ_API_KEY or ANTHROPIC_API_KEY on the backend.',
+      // Demo-mode fallback so the prescription-scan UI works without an
+      // LLM key. Returns a deterministic sample prescription so the user
+      // can complete the "scan → save → reminders" flow end-to-end.
+      this.logger.warn(
+        'Prescription scanner running in demo-mode (no AI key configured).',
       );
+      return {
+        notes: 'Demo scan — sample prescription',
+        items: [
+          {
+            medicationName: 'Amoxicillin',
+            dose: '500mg',
+            frequency: 'Three times daily',
+            durationDays: 7,
+            instructionsEn: 'With food',
+            instructionsAr: 'مع الطعام',
+          },
+          {
+            medicationName: 'Paracetamol',
+            dose: '500mg',
+            frequency: 'Every 6 hours as needed',
+            durationDays: 5,
+            instructionsEn: 'For fever or pain',
+            instructionsAr: 'عند الحمى أو الألم',
+          },
+        ],
+      };
     }
 
     try {
