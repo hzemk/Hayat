@@ -52,12 +52,29 @@ services:
         value: 20
       - key: LOG_LEVEL
         value: info
-      # Secrets — fill in the Render dashboard
+      # Database connection string — auto-injected from the managed
+      # Postgres declared below. Render fills this in at deploy time.
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: hayat-db
+          property: connectionString
       - key: DIRECT_URL
-        sync: false
+        fromDatabase:
+          name: hayat-db
+          property: connectionString
+      # Optional secrets — paste in Render dashboard (Service →
+      # Environment → Edit). Leave empty to use the deterministic AI
+      # fallback we ship for demos.
       - key: GROQ_API_KEY
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+
+databases:
+  - name: hayat-db
+    plan: free
+    databaseName: hayat
+    user: hayat
+    # Postgres 16 to match local dev — keeps Prisma migrations identical
+    # across environments.
+    postgresMajorVersion: "16"
