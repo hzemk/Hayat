@@ -11,6 +11,7 @@ import '@i18n/index';
 import i18n from '@i18n/index';
 import { queryClient } from '@services/queryClient';
 import { useAuthStore } from '@stores/auth';
+import { useQuitSmokingStore } from '@stores/quitSmoking';
 import { ThemeProvider, useTheme } from '@theme/index';
 import { ErrorBoundary } from '@components/ErrorBoundary';
 
@@ -22,10 +23,12 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const hydrate = useAuthStore((s) => s.hydrate);
+  const hydrateQuit = useQuitSmokingStore((s) => s.hydrate);
 
   useEffect(() => {
     hydrate();
-  }, [hydrate]);
+    hydrateQuit();
+  }, [hydrate, hydrateQuit]);
 
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((resp) => {

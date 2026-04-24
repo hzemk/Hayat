@@ -63,6 +63,16 @@ export default function MoreScreen() {
             onPress={() => router.push('/insurance-card')}
             chevron
           />
+          <ListItem
+            icon="leaf-outline"
+            tint="green"
+            title={t('quit.title', { defaultValue: 'Life Tree' })}
+            subtitle={t('more.quitHint', {
+              defaultValue: 'Quit smoking & grow your tree',
+            })}
+            onPress={() => router.push('/quit-smoking' as never)}
+            chevron
+          />
         </SectionContainer>
 
         <SectionContainer title={t('more.care') || 'Care & people'} gap="sm">

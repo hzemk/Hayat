@@ -170,6 +170,91 @@ export async function clearExpoPushToken(): Promise<void> {
   }
 }
 
+// --- Quit Smoking daily check-in ---
+// One repeating local notification at 20:00 prompting the user to log
+// today's status. Idempotent — calling schedule again replaces the prior
+// schedule so we don't pile up duplicates.
+
+const QUIT_NOTIF_ID_KEY = 'quit-smoking-checkin-notif-id';
+
+async function readQuitNotifId(): Promise<string | null> {
+  try {
+    return Platform.OS === 'web'
+      ? typeof window !== 'undefined'
+        ? window.localStorage.getItem(QUIT_NOTIF_ID_KEY)
+        : null
+      : await SecureStore.getItemAsync(QUIT_NOTIF_ID_KEY);
+  } catch {
+    return null;
+  }
+}
+
+async function writeQuitNotifId(id: string | null) {
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') {
+        if (id) window.localStorage.setItem(QUIT_NOTIF_ID_KEY, id);
+        else window.localStorage.removeItem(QUIT_NOTIF_ID_KEY);
+      }
+    } else {
+      if (id) await SecureStore.setItemAsync(QUIT_NOTIF_ID_KEY, id);
+      else await SecureStore.deleteItemAsync(QUIT_NOTIF_ID_KEY);
+    }
+  } catch {
+    // best-effort
+  }
+}
+
+export async function scheduleQuitSmokingDailyCheckIn(opts: {
+  hour?: number;
+  minute?: number;
+  bodyEn?: string;
+  bodyAr?: string;
+  locale?: 'ar' | 'en';
+}): Promise<void> {
+  const granted = await ensureNotificationPermissions();
+  if (!granted) return;
+
+  // Cancel previous schedule first.
+  const prev = await readQuitNotifId();
+  if (prev) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(prev);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const hour = opts.hour ?? 20;
+  const minute = opts.minute ?? 0;
+  const body =
+    opts.locale === 'ar'
+      ? (opts.bodyAr ?? 'كيف كان يومك بدون تدخين؟')
+      : (opts.bodyEn ?? 'How did your smoke-free day go?');
+  const title = opts.locale === 'ar' ? 'شجرة الحياة' : 'Life Tree';
+
+  const id = await Notifications.scheduleNotificationAsync({
+    content: { title, body, data: { type: 'quit-smoking' } },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute,
+    },
+  });
+  await writeQuitNotifId(id);
+}
+
+export async function cancelQuitSmokingDailyCheckIn(): Promise<void> {
+  const prev = await readQuitNotifId();
+  if (!prev) return;
+  try {
+    await Notifications.cancelScheduledNotificationAsync(prev);
+  } catch {
+    /* ignore */
+  }
+  await writeQuitNotifId(null);
+}
+
 export async function cancelAllReminderNotifications(): Promise<void> {
   const map = await loadMap();
   for (const notifId of Object.values(map)) {
