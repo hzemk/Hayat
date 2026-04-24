@@ -81,15 +81,24 @@ export class AppointmentsService {
     }
 
     if (dto.familyMemberId) {
-      const member = await this.prisma.familyMember.findUnique({
-        where: { id: dto.familyMemberId },
-        select: { guardianId: true, dateOfBirth: true, fullName: true },
-      });
+      const [member, booker] = await Promise.all([
+        this.prisma.familyMember.findUnique({
+          where: { id: dto.familyMemberId },
+          select: { guardianId: true },
+        }),
+        this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { dateOfBirth: true },
+        }),
+      ]);
       if (!member) throw new NotFoundException('Family member not found');
       if (member.guardianId !== userId) throw new ForbiddenException();
-      if (this.ageYearsAt(member.dateOfBirth, scheduledAt) >= this.MIN_BOOKING_AGE_YEARS) {
-        throw new BadRequestException(
-          `${member.fullName} is 18 or older and must book their own appointments`,
+      if (
+        !booker?.dateOfBirth ||
+        this.ageYearsAt(booker.dateOfBirth, scheduledAt) < this.MIN_BOOKING_AGE_YEARS
+      ) {
+        throw new ForbiddenException(
+          'You must be 18 or older to book appointments for a family member',
         );
       }
     }

@@ -3,10 +3,11 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { GradientHeader } from '@components/GradientHeader';
 import { SectionContainer } from '@components/SectionContainer';
 import { InfoChip } from '@components/InfoChip';
-import { FamilyMember } from '@services/api/family.api';
+import { FamilyMember, listFamilyMembers } from '@services/api/family.api';
 import { PREVIEW_FAMILY } from '@services/api/family.preview';
 import { AppColors, radius, shadow, spacing, typography, useTheme } from '@theme/index';
 
@@ -36,7 +37,17 @@ export default function FamilyListScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useStyles(colors);
-  const members = PREVIEW_FAMILY;
+
+  const { data: realMembers } = useQuery({
+    queryKey: ['family-members'],
+    queryFn: listFamilyMembers,
+    staleTime: 30_000,
+  });
+
+  // Real DB members get the booking CTA; preview is shown as a demo when the
+  // user hasn't added anyone yet.
+  const members: FamilyMember[] =
+    realMembers && realMembers.length > 0 ? realMembers : PREVIEW_FAMILY;
   const urgent = members.filter((m) => m.needsUrgentCare);
   const regular = members.filter((m) => !m.needsUrgentCare);
 

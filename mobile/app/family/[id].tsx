@@ -6,9 +6,11 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { GradientHeader } from '@components/GradientHeader';
+import { GradientButton } from '@components/GradientButton';
 import { SectionContainer } from '@components/SectionContainer';
 import { TintedSection } from '@components/TintedSection';
 import { Card } from '@components/Card';
@@ -16,6 +18,8 @@ import { ListItem } from '@components/ListItem';
 import { InfoChip } from '@components/InfoChip';
 import { StatCard } from '@components/StatCard';
 import { Reminder } from '@services/api/reminders.api';
+import { getFamilyMember, FamilyMember } from '@services/api/family.api';
+import { listFamilyReminders } from '@services/api/family.api';
 import { findPreviewMember } from '@services/api/family.preview';
 import { AppColors, radius, shadow, spacing, typography, useTheme } from '@theme/index';
 
@@ -82,16 +86,39 @@ export default function FamilyMemberDetail() {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const styles = useStyles(colors);
-  const member = id ? findPreviewMember(id) : undefined;
+
+  const isPreviewId = !!id && id.startsWith('prev-');
+  const previewMember = id ? findPreviewMember(id) : undefined;
+
+  const memberQuery = useQuery({
+    queryKey: ['family-member', id],
+    queryFn: () => getFamilyMember(id!),
+    enabled: !!id && !isPreviewId,
+    staleTime: 30_000,
+  });
+
+  const remindersQuery = useQuery({
+    queryKey: ['family-member-reminders', id],
+    queryFn: () => listFamilyReminders(id!, 'all'),
+    enabled: !!id && !isPreviewId,
+    staleTime: 30_000,
+  });
+
+  const member: FamilyMember | undefined = isPreviewId
+    ? previewMember
+    : memberQuery.data;
+  const reminders: Reminder[] = isPreviewId
+    ? (previewMember?.reminders ?? [])
+    : (remindersQuery.data ?? []);
 
   const sortedReminders = useMemo(
     () =>
-      [...(member?.reminders ?? [])].sort(
+      [...reminders].sort(
         (a, b) =>
           new Date(a.scheduledAt).getTime() -
           new Date(b.scheduledAt).getTime(),
       ),
-    [member],
+    [reminders],
   );
 
   const initials = useMemo(() => {
@@ -167,6 +194,20 @@ export default function FamilyMemberDetail() {
               {member.urgentCareNote ?? t('family.urgentDefault')}
             </Text>
           </TintedSection>
+        ) : null}
+
+        {!isPreviewId ? (
+          <GradientButton
+            label={t('family.bookAppointment', {
+              defaultValue: 'Book appointment',
+            })}
+            onPress={() =>
+              router.push({
+                pathname: '/booking',
+                params: { familyMemberId: member.id },
+              })
+            }
+          />
         ) : null}
 
         <View style={styles.statsRow}>

@@ -32,6 +32,7 @@ export default function RemindersScreen() {
   const { data: reminders, isLoading } = useQuery({
     queryKey: ['reminders'],
     queryFn: listReminders,
+    staleTime: 60_000,
   });
 
   useEffect(() => {
@@ -40,8 +41,8 @@ export default function RemindersScreen() {
     }
   }, [reminders]);
 
-  const nowMs = Date.now();
   const grouped = useMemo(() => {
+    const nowMs = Date.now();
     const buckets: Record<Bucket, Reminder[]> = {
       upcoming: [],
       active: [],
@@ -49,7 +50,7 @@ export default function RemindersScreen() {
     };
     for (const r of reminders ?? []) buckets[bucketFor(r, nowMs)].push(r);
     return buckets;
-  }, [reminders, nowMs]);
+  }, [reminders]);
 
   return (
     <ScrollView

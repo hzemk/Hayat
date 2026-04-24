@@ -30,8 +30,6 @@ import { apiErrorMessage } from '@services/api/errors';
 import { localizeCity } from '@i18n/places';
 import { AppColors, radius, spacing, typography, useTheme } from '@theme/index';
 
-const MIN_BOOKING_AGE_YEARS = 18;
-
 function ageYears(dateOfBirth: string, ref: Date = new Date()) {
   const dob = new Date(dateOfBirth);
   let years = ref.getFullYear() - dob.getFullYear();
@@ -63,8 +61,12 @@ function isSameDay(a: Date, b: Date) {
 export default function BookingScreen() {
   const { t, i18n } = useTranslation();
   const locale = (i18n.language === 'en' ? 'en' : 'ar') as 'ar' | 'en';
-  const params = useLocalSearchParams<{ hospitalId?: string }>();
+  const params = useLocalSearchParams<{
+    hospitalId?: string;
+    familyMemberId?: string;
+  }>();
   const preselectedId = params.hospitalId;
+  const preselectedFamilyMemberId = params.familyMemberId;
   const { colors } = useTheme();
   const styles = useStyles(colors);
 
@@ -77,7 +79,9 @@ export default function BookingScreen() {
   const [hospital, setHospital] = useState<Hospital | null>(null);
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [doctorId, setDoctorId] = useState<string | null>(null);
-  const [familyMemberId, setFamilyMemberId] = useState<string | null>(null);
+  const [familyMemberId, setFamilyMemberId] = useState<string | null>(
+    preselectedFamilyMemberId ?? null,
+  );
   const [reason, setReason] = useState('');
   const [now, setNow] = useState(() => new Date());
   const queryClient = useQueryClient();
@@ -225,13 +229,6 @@ export default function BookingScreen() {
   }
 
   function onPickFamily(member: FamilyMember | null) {
-    if (member && ageYears(member.dateOfBirth) >= MIN_BOOKING_AGE_YEARS) {
-      Alert.alert(
-        t('booking.adultCannotBookTitle'),
-        t('booking.adultCannotBook', { name: member.fullName }),
-      );
-      return;
-    }
     setFamilyMemberId(member?.id ?? null);
   }
 
@@ -333,7 +330,6 @@ export default function BookingScreen() {
               </Pressable>
               {familyMembers.map((m) => {
                 const age = ageYears(m.dateOfBirth);
-                const isAdult = age >= MIN_BOOKING_AGE_YEARS;
                 const selected = familyMemberId === m.id;
                 return (
                   <Pressable
@@ -342,25 +338,19 @@ export default function BookingScreen() {
                     style={[
                       styles.personChip,
                       selected && styles.personChipSelected,
-                      isAdult && styles.personChipDisabled,
                     ]}
                   >
                     <Ionicons
-                      name={isAdult ? 'lock-closed' : 'happy'}
+                      name="happy"
                       size={14}
                       color={
-                        selected
-                          ? colors.text.inverse
-                          : isAdult
-                            ? colors.text.muted
-                            : colors.text.primary
+                        selected ? colors.text.inverse : colors.text.primary
                       }
                     />
                     <Text
                       style={[
                         styles.personChipText,
                         selected && styles.personChipTextSelected,
-                        isAdult && { color: colors.text.muted },
                       ]}
                       numberOfLines={1}
                     >
